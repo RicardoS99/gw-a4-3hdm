@@ -22,6 +22,10 @@ from scipy import linalg
 import sympy as sp
 import csv
 import multiprocessing as mp
+import pandas as pd
+import datetime
+
+from gw_spectrum import gw_spectrum
 
 MPl = 2.4*10**(18)
 
@@ -374,80 +378,9 @@ class model1(generic_potential.generic_potential):
         # Approximate minimum at T=0. Giving tree-level minimum
         return [np.array([vh/np.sqrt(3), vh/np.sqrt(3), 0, vh/np.sqrt(3), 0])]
 
-def col(f,a,b,g,v,k,T):
-    kin=k*a/(1+a)
-    g=g/100
-    fpeak = (1.65e-5)*b*T*(g**(1/6))*0.62/(1.8-0.1*v+v**2)
-    grav = (1.67e-5)/b**2 *(kin**2)/(g**(1/3))*0.11*v**3 /(0.42+v**2) * 3.8*(f/fpeak)**2.8 / (1+2.8*((f/fpeak)**3.8))
-    peak = (1.67e-5)/b**2 *(kin**2)/(g**(1/3))*0.11*v**3 /(0.42+v**2)
+def findTrans(pars, isMasses = True):
 
-    return fpeak, peak, grav
-
-
-def sw(f,a,b,g,v,k,T):
-    kin=k*a/(1+a)
-    g=g/100
-    T=T/100
-    fpeak = (1.9e-5)*b*T*(g**(1/6))/v
-    grav = (2.65e-6)/b*(kin**2)/(g**(1/3))*v*(f/fpeak)**3 *(7/(4+3*(f/fpeak)**2))**(7/2)
-    peak = (2.65e-6)/b*(kin**2)/(g**(1/3))*v
-
-    return fpeak, peak, grav
-
-def turb(f,a,b,g,v,k,T):
-    kin=k*a/(1+a)
-    g=g/100
-    T=T/100
-    h=1.6e-7*T*g**(1/6)
-    fpeak = (2.7e-5)*b*(T/100)*(g**(1/6))/v
-    grav = (3.35e-4)/b*(kin**2)/(g**(1/3))*v*(f/fpeak)**3 /((1+(f/fpeak))**(11/3) * (1+8*pi*f/h))
-    peak = (3.35e-4)/b*(kin**2)/(g**(1/3))*v /((2)**(11/3) * (1+13.5*pi*b/v))
-
-    return fpeak, peak, grav
-
-def calc_alpha(m,tctrans,delta,g):
-    Tnuc = float(tctrans['Tcrit'])
-    Thigh = Tnuc+delta
-    Tlow = Tnuc-delta
-    xf = tctrans['high_vev']
-    xt = tctrans['low_vev']
-    vf = m.Vtot(xf,Thigh)
-    vt = m.Vtot(xt,Tlow)
-    dvf = (m.Vtot(xf,Tnuc+1.5*delta) -m.Vtot(xf,Tnuc+0.5*delta))/delta
-    dvt = (m.Vtot(xt,Tnuc-0.5*delta) -m.Vtot(xt,Tnuc-1.5*delta))/delta
-    #dvf = m.dgradV_dT(xf, Thigh)
-    #dvt = m.dgradV_dT(xt, Tlow)
-    
-    rho = (pi**2 *g*Tnuc**4) /30
-
-    return ((vf-Tnuc/4*dvf)-(vt-Tnuc/4*dvt))/rho
-
-def calc_beta(m,tntrans,delta):
-    def compute_action_my(m,x1,x0,T):
-    
-        res=None
-                        
-        def V(x):   return(m.Vtot(x,T))
-        def dV(x):  return(m.gradV(x,T))
-
-        res = pd.fullTunneling(np.array([x1,x0]), V, dV).action
-        
-        if(T!=0):
-            res=res/T
-        else:
-            res=res/(T+0.001)
-
-        return res  
-
-    Tnuc = tntrans['Tnuc']
-    xf = tntrans['high_vev']
-    xt = tntrans['low_vev']
-
-
-    return (compute_action_my(m,xt,xf,Tnuc+0.5*delta)-compute_action_my(m,xt,xf,Tnuc-0.5*delta))*Tnuc/delta
-
-def findTrans(pars, isMasses = False):
-    output = np.array([]).reshape(0,42)
+    output = []
     inMn1 = pars[0] if isMasses else np.sqrt((pars[0]+pars[1])/2.)
     inMn2 = pars[1] if isMasses else np.sqrt((pars[0]-pars[1])/2.)
     inMch1 = pars[2] if isMasses else np.sqrt((pars[2]+pars[3])/2.)
@@ -456,37 +389,31 @@ def findTrans(pars, isMasses = False):
     m = model1(Mn1=inMn1,Mn2=inMn2,Mch1=inMch1,Mch2=inMch2)
 
     n_trans = 0
-    try:
-        m.findAllTransitions()
-        n_phases = len(m.phases)
-        n_trans = len(m.TnTrans)
-        print('Number of Phases: ', n_phases)
-        print('Number of Transitions: ', n_trans)
-        if(len(m.TnTrans)>0):
-            for trans in m.TnTrans:
-                print('Transition Type: ', trans['trantype'])
-                tctrans = m.TcTrans[0]
-                g=106.75
-                delta = 0.0001
-                epsilon = 0.9
-                a = calc_alpha(m,tctrans,delta,g)
-                b = calc_beta(m,trans,delta)
-                vj=(3**(-1/2)+(a**2+2*a/3)**(1/2))/(1+a)
-                v=0.95
-                r=(8*pi)**(1/3)*v
-                kf=a/(0.73+0.083*a**(1/2)+a)
-                kcol=1/(1+0.715*a)*(0.715*a+4/27*(3*a/2)**(1/2))
-                fpeak_col, peak_col, grav_col = col(1.,a,b,g,v,kcol,trans['Tnuc'])
-                fpeak_sw, peak_sw, grav_sw = sw(1.,a,b,g,v,kf,trans['Tnuc'])
-                fpeak_turb, peak_turb, grav_turb = turb(1.,a,b,g,v,kf*(1-epsilon),trans['Tnuc'])
-                data = np.array([[inMn1, inMn2, inMch1, inMch2, inMn1**2 + inMn2**2, inMn1**2 - inMn2**2, inMch1**2 + inMch2**2, inMch1**2 - inMch2**2, m.L1, m.L2, m.L3, m.L4, n_phases, n_trans, trans['trantype'], tctrans['Tcrit'], trans['Tnuc'], trans['high_vev'][0], trans['high_vev'][1], trans['high_vev'][2], trans['high_vev'][3], trans['high_vev'][4], trans['low_vev'][0], trans['low_vev'][1], trans['low_vev'][2], trans['low_vev'][3], trans['low_vev'][4], trans['Delta_rho'], trans['action'], trans['action']/trans['Tnuc'], b, a, vj, v, kcol, kf, fpeak_col, peak_col, fpeak_sw, peak_sw, fpeak_turb, peak_turb]], dtype=object)
-                output = np.concatenate((output, data))
-        else:
-            data = np.array([[inMn1, inMn2, inMch1, inMch2, inMn1**2 + inMn2**2, inMn1**2 - inMn2**2, inMch1**2 + inMch2**2, inMch1**2 - inMch2**2, m.L1, m.L2, m.L3, m.L4, n_phases, n_trans, 0, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]], dtype=object)
-            output = np.concatenate((output,data))
-    except:
-        pass
 
+    m.findAllTransitions()
+    n_phases = len(m.phases)
+    n_trans = len(m.TnTrans)
+
+    model_info = {
+        "Mn1": inMn1,
+        "Mn2": inMn2,
+        "Mch1": inMch1,
+        "Mch2": inMch2,
+        "L1": m.L1,
+        "L2": m.L2,
+        "L3": m.L3,
+        "L4": m.L4,
+        "NPhases": n_phases,
+        "NTrans": n_trans
+    }
+    if(len(m.TnTrans)>0):
+        for ind in range(0,len(m.TnTrans)):
+            #ind_trans = np.where(m.TnTrans == trans)[0]
+            if(m.TnTrans[0]['trantype']==1): 
+                gw = gw_spectrum(m, ind, turb_on=True)
+                #print('GW computed')
+                output.append(model_info | gw.info)
+                
     return output
 
 def createPars(box, n, isMasses=True, lin=True):
@@ -511,28 +438,21 @@ def createPars(box, n, isMasses=True, lin=True):
 
     return pars
 
-def swipeRoutine(pars_list):
-
-    output = np.array([]).reshape(0,42)
-
-    for pars in pars_list:
-        output = np.concatenate((output, findTrans(pars)))
-
-    return output
-
-
 def main():
+    file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
+
     #pars_list = createPars([[100.,100.,300.,300.],[300.,299.,500.,499.]],[5,5,5,5])
-    pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
+    pars_list = createPars([[250.,100.,350.,330.],[250.,100.,350.,350.]],[1,1,1,5])
+    #pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
     print(pars_list)
+    sys.stdout = open(os.devnull, 'w')
     pool = mp.Pool()
-    #output = findTrans([300.,100.,100.,200.])
-    output = np.array([]).reshape(0,42)
-    output = pool.map(findTrans, list(pars_list))
-    if len(list(output)) >1:
-        output = np.concatenate(output)
-    np.savetxt("test.csv", output, delimiter=",", header="Mn1, Mn2, Mch1, Mch2, N_Phases, N_Transitions, Trans_Type, Tcrit, Tnuc, high_H10, high_H20, high_H21, high_H30, high_H31, low_H10, low_H20, low_H21, low_H30, low_H31, Delta_E, Action, Action/Tnuc, Beta, Alpha, V_Jouget, Wall_speed, kcol, kf, fpeak_col, peak_col, fpeak_sw, peak_sw, fpeak_turb, peak_turb")
- 
+    output_list = pool.map(findTrans, list(pars_list))
+    output_flat = [item for sublist in output_list for item in sublist if sublist != []]
+    output_data = pd.DataFrame(output_flat)
+    output_data.to_csv(file_name)
+    sys.stdout = sys.__stdout__
+    print("Finished")
     
 if __name__ == "__main__":
   main()
