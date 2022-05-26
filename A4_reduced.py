@@ -389,30 +389,32 @@ def findTrans(pars, isMasses = True):
     m = model1(Mn1=inMn1,Mn2=inMn2,Mch1=inMch1,Mch2=inMch2)
 
     n_trans = 0
+    try:
+        m.findAllTransitions()
+        n_phases = len(m.phases)
+        n_trans = len(m.TnTrans)
 
-    m.findAllTransitions()
-    n_phases = len(m.phases)
-    n_trans = len(m.TnTrans)
-
-    model_info = {
-        "Mn1": inMn1,
-        "Mn2": inMn2,
-        "Mch1": inMch1,
-        "Mch2": inMch2,
-        "L1": m.L1,
-        "L2": m.L2,
-        "L3": m.L3,
-        "L4": m.L4,
-        "NPhases": n_phases,
-        "NTrans": n_trans
-    }
-    if(len(m.TnTrans)>0):
-        for ind in range(0,len(m.TnTrans)):
-            #ind_trans = np.where(m.TnTrans == trans)[0]
-            if(m.TnTrans[0]['trantype']==1): 
-                gw = gw_spectrum(m, ind, turb_on=True)
-                #print('GW computed')
-                output.append(model_info | gw.info)
+        model_info = {
+            "Mn1": inMn1,
+            "Mn2": inMn2,
+            "Mch1": inMch1,
+            "Mch2": inMch2,
+            "L1": m.L1,
+            "L2": m.L2,
+            "L3": m.L3,
+            "L4": m.L4,
+            "NPhases": n_phases,
+            "NTrans": n_trans
+        }
+        if(len(m.TnTrans)>0):
+            for ind in range(0,len(m.TnTrans)):
+                #ind_trans = np.where(m.TnTrans == trans)[0]
+                if(m.TnTrans[0]['trantype']==1): 
+                    gw = gw_spectrum(m, ind, turb_on=True)
+                    #print('GW computed')
+                    output.append(model_info | gw.info)
+    except:
+        pass
                 
     return output
 
@@ -442,7 +444,7 @@ def main():
     file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
 
     #pars_list = createPars([[100.,100.,300.,300.],[300.,299.,500.,499.]],[5,5,5,5])
-    pars_list = createPars([[250.,100.,350.,330.],[250.,100.,350.,350.]],[1,1,1,5])
+    pars_list = createPars([[10.,10.,1.,1.],[400.,400.,400.,400.]],[5,5,10,10])
     #pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
     print(pars_list)
     sys.stdout = open(os.devnull, 'w')
