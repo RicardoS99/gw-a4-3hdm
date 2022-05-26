@@ -19,18 +19,24 @@ class gw_spectrum():
         self.Tnuc = self.m.TnTrans[self.id]['Tnuc']
         self.Dvev = (np.linalg.norm(self.m.TcTrans[self.id]['low_vev']) - np.linalg.norm(self.m.TcTrans[self.id]['high_vev']))/self.Tcrit
         self.alpha = self.calc_alpha()
-        self.beta = self.calc_beta()
+        try:
+            self.beta = self.calc_beta()
+        except:
+            self.beta = np.nan
         self.vJ = (3.**(-1/2.)+(self.alpha**2+2*self.alpha/3.)**(1/2.))/(1.+self.alpha)
         self.r = (8.*np.pi)**(1/3.)*v
         self.kf = self.alpha/(0.73+0.083*self.alpha**(1/2.)+self.alpha)
         self.kcol = 1/(1.+0.715*self.alpha)*(0.715*self.alpha+4/27.*(3*self.alpha/2)**(1/2.))
         self.kturb = epsilon*self.kf
-        self.fpeak_col, self.peak_col = self.colPeak()
-        self.fpeak_sw, self.peak_sw = self.swPeak()
-        if turb_on:
-            self.fpeak_turb, self.peak_turb = self.turbPeak() 
+        if(self.beta!=np.nan):
+            self.fpeak_col, self.peak_col = self.colPeak()
+            self.fpeak_sw, self.peak_sw = self.swPeak()
+            if turb_on:
+                self.fpeak_turb, self.peak_turb = self.turbPeak() 
+            else:
+                self.fpeak_turb, self.peak_turb = 1, 0
         else:
-            self.fpeak_turb, self.peak_turb = 1, 0
+            self.fpeak_col, self.peak_col, self.fpeak_sw, self.peak_sw, self.fpeak_turb, self.peak_turb = np.nan
         self.info ={
             "VEVdif/T": self.Dvev,
             "alpha": self.alpha,
@@ -107,6 +113,11 @@ class gw_spectrum():
         return ((vf-self.Tcrit/4*dvf)-(vt-self.Tcrit/4*dvt))/rho
 
     def calc_beta(self):
+        def divpoly(p, x):
+            div = 0.
+            for i in range(0, p.size):
+                div += (p.size-1-i)*p[i]*x**(p.size-i-2)
+            return div
 
         def compute_action_my(x1,x0,T):
 
@@ -128,6 +139,18 @@ class gw_spectrum():
         xf = self.m.TnTrans[self.id]['high_vev']
         xt = self.m.TnTrans[self.id]['low_vev']
 
+        dT = self.Tcrit-self.Tnuc
+        mf = 0.1
+        n=50
+
+        T_vec = np.linspace(self.Tnuc-dT*mf, self.Tnuc+dT*mf, n)
+        S_vec = np.empty_like(T_vec)
+
+        for i in range(0, len(S_vec)):
+            S_vec[i] = compute_action_my(xt,xf,T_vec[i])
+
+        fit = np.polyfit(T_vec, S_vec, deg=5)
+
         #deltaT = self.Tcrit - self.Tnuc
         #Ts = np.linspace(self.Tnuc-deltaT, self.Tnuc+deltaT, 30)
         #ActionsT = compute_action_vec(xt, xf, Ts)   
@@ -135,5 +158,4 @@ class gw_spectrum():
 
         #action = CubicSpline(Ts, ActionsT)
 
-        return (compute_action_my(xt,xf,self.Tnuc+0.5*self.delta)-compute_action_my(xt,xf,self.Tnuc-0.5*self.delta))*self.Tnuc/self.delta
-
+        return divpoly(fit,self.Tnuc)*self.Tnuc
