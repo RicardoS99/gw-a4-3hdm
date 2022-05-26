@@ -1,4 +1,5 @@
 from A4_reduced import model1
+from gw_spectrum import gw_spectrum
 
 from cosmoTransitions import generic_potential
 from cosmoTransitions import transitionFinder as tf
@@ -40,7 +41,7 @@ def plotActionT(m, trans, Tmin=0.001, Tmax=500., n=50):
     return T_vec, S_vec
 
 def main():
-    m = model1(Mn1=400.,Mn2=300.,Mch1=220.,Mch2=180.)
+    m = model1(Mn1=400.,Mn2=302.5,Mch1=1.,Mch2=134.)
     m.findAllTransitions()
 
     if(len(m.TnTrans)>0):
@@ -48,9 +49,11 @@ def main():
         Tnuc = trans['Tnuc']
         Tcrit = m.TcTrans[0]['Tcrit']
         dT = Tcrit - Tnuc
-        mfh = 0.1
-        mfl = 0.1
-        T_vec, S_vec = plotActionT(m, trans, Tnuc-dT*mfl, Tnuc+dT*mfh)
+        mfh = 0.001
+        mfl = 0.001
+        T_vec, S_vec = plotActionT(m, trans, Tnuc-dT*mfl, Tnuc+dT*mfh, n=200)
+        gw = gw_spectrum(m, 0, turb_on=True)
+        print(gw.info)
 
         plt.plot(T_vec, S_vec)
         plt.show()
