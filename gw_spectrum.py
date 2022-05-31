@@ -139,17 +139,24 @@ class gw_spectrum():
         xf = self.m.TnTrans[self.id]['high_vev']
         xt = self.m.TnTrans[self.id]['low_vev']
 
-        dT = self.Tcrit-self.Tnuc
-        mf = 0.1
-        n=50
+        dT = (self.Tcrit-self.Tnuc)*1.0
+        nsteps = int(10*2*dT) if dT>1.0 else 20
 
-        T_vec = np.linspace(self.Tnuc-dT*mf, self.Tnuc+dT*mf, n)
-        S_vec = np.empty_like(T_vec)
+        T_vec = np.linspace(self.Tnuc-dT, self.Tnuc+dT, nsteps)
+        S_vec = np.zeros_like(T_vec)
 
         for i in range(0, len(S_vec)):
-            S_vec[i] = compute_action_my(xt,xf,T_vec[i])
+            try:
+                print("Calculating Action for Temperature:", T_vec[i])
+                S_vec[i] = compute_action_my(xt,xf,T_vec[i])
+            except:
+                print("Couldn't calculate action...")
 
-        fit = np.polyfit(T_vec, S_vec, deg=5)
+        ind_to_rem = np.where(np.abs(S_vec)<1e-8)
+        T_vec = np.delete(T_vec, ind_to_rem)
+        S_vec = np.delete(S_vec, ind_to_rem)
+
+        fit = np.polyfit(T_vec, S_vec, deg=9)
 
         #deltaT = self.Tcrit - self.Tnuc
         #Ts = np.linspace(self.Tnuc-deltaT, self.Tnuc+deltaT, 30)
