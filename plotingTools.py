@@ -1,4 +1,4 @@
-from A4_reduced import model1
+from A4_model import A4_vev1
 from gw_spectrum import gw_spectrum
 
 from cosmoTransitions import generic_potential
@@ -49,7 +49,7 @@ def plotActionT(m, trans, Tmin=0.001, Tmax=500., n=50):
     return T_vec, S_vec
 
 def main():  
-    m = model1(Mn1=400.,Mn2=10.,Mch1=134.,Mch2=45.33)
+    m = A4_vev1(Mn1=400.,Mn2=10.,Mch1=134.,Mch2=45.33)
     m.findAllTransitions()
     m.prettyPrintTnTrans()
 
