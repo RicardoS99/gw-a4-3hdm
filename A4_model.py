@@ -1,51 +1,21 @@
-from __future__ import division
-from __future__ import print_function
 from cosmoTransitions import generic_potential
 from cosmoTransitions import transitionFinder as tf
 from cosmoTransitions import pathDeformation as pd
 import numpy as np
-import random
-import os
-import math
-import sys
-from numpy.core.function_base import linspace
-from scipy import optimize
-from scipy.optimize import curve_fit
-from scipy import integrate
-from scipy.integrate import quad
-from scipy.optimize import fsolve
-from math import sqrt
-from math import atan
-from math import pi
-import matplotlib.pyplot as plt
-from scipy import linalg
-import sympy as sp
-import csv
-import multiprocessing as mp
-import pandas as pd
-import datetime
-from A4_model import A4_vev1
 
-from gw_spectrum import gw_spectrum
-"""
-MPl = 2.4*10**(18)
 
-# Higgs sector parameters in GeV
-vh=246.22
-
-# Gauge boson masses at MZ in GeV
-mZ = 91.1876 #91.1876 pm 0.0021
-mW = 80.379#80.379 pm 0.012
-"""
-"""
-class model1(generic_potential.generic_potential):
-    def init(self,Mn1=10.,Mn2=20.,Mch1=5.,Mch2=6.,Mh=125.10,mZ = 91.1876,mW = 80.379,mtop = 172.76,mbot = 4.18,mtau = 1.77686, mcharm = 1.27, mstrange = 0.093, mmuon = 0.1056583745, mup = 0.00216, mdown = 0.00467, melectron = 0.0005109989461):
+class A4_vev1(generic_potential.generic_potential):
+    def init(self,Mn1=10.,Mn2=20.,Mch1=5.,Mch2=6.,Mh=125.10,mZ = 91.1876,mW = 80.379,mtop = 172.76,mbot = 4.18,mtau = 1.77686, mcharm = 1.27, mstrange = 0.093, mmuon = 0.1056583745, mup = 0.00216, mdown = 0.00467, melectron = 0.0005109989461, vh = 246.22):
         # SU(2)_L and U(1)_Y couplings
-        gl = 2*mW/vh
-        gy = 2*np.sqrt(mZ**2 - mW**2)/vh
+        self.mW = mW
+        self.mZ = mZ
+        self.vh = vh
+
+        gl = 2*self.mW/self.vh
+        gy = 2*np.sqrt(self.mZ**2 - self.mW**2)/self.vh
         
         self.Ndim = 5 # Number of dynamic classical fields. 1 real field + 2 complex fields -> 5 real fields 
-        self.renormScaleSq = float(vh**2) # Renormalisation scale
+        self.renormScaleSq = float(self.vh**2) # Renormalisation scale
         
         if ((Mn1**2 - Mn2**2)**2 >= 4.*(Mch1**2 - Mch2**2)**2 ): #Check if masses are allowed
             self.Mn1 = float(Mn1)
@@ -61,11 +31,11 @@ class model1(generic_potential.generic_potential):
         
         #Calculate constants from masses
         self.M0 = np.sqrt(3)/2.*Mh**2
-        self.L1 = -(self.Mch1**2 + self.Mch2**2)/(vh**2)
-        self.L4 = 2.*np.sqrt(3)*(self.Mch1**2 - self.Mch2**2)/(vh**2)
-        self.L0 = np.sqrt(3)*self.M0/(vh**2) - self.L1
-        xc1 = 6.*(self.Mn1**2 + self.Mn2**2)/(vh**2) + 5*self.L1
-        xc2 = np.sqrt((6.*(self.Mn1**2 - self.Mn2**2)/(vh**2))**2 - 12*self.L4**2)
+        self.L1 = -(self.Mch1**2 + self.Mch2**2)/(self.vh**2)
+        self.L4 = 2.*np.sqrt(3)*(self.Mch1**2 - self.Mch2**2)/(self.vh**2)
+        self.L0 = np.sqrt(3)*self.M0/(self.vh**2) - self.L1
+        xc1 = 6.*(self.Mn1**2 + self.Mn2**2)/(self.vh**2) + 5*self.L1
+        xc2 = np.sqrt((6.*(self.Mn1**2 - self.Mn2**2)/(self.vh**2))**2 - 12*self.L4**2)
         self.L2 = 1/6.*(xc1 + xc2 + self.L1)
         self.L3 = 1/4.*(xc1 - xc2 - self.L1)
 
@@ -77,21 +47,21 @@ class model1(generic_potential.generic_potential):
         self.dL4 = 0
         
         # Yukawa Couplings
-        self.yt   = np.sqrt(2)*mtop/vh
-        self.yb   = np.sqrt(2)*mbot/vh
-        self.ytau = np.sqrt(2)*mtau/vh
-        self.yc   = np.sqrt(2)*mcharm/vh
-        self.ys   = np.sqrt(2)*mstrange/vh
-        self.ymuon = np.sqrt(2)*mmuon/vh 
-        self.yu   = np.sqrt(2)*mup/vh
-        self.yd   = np.sqrt(2)*mdown/vh
-        self.ye = np.sqrt(2)*melectron/vh     
+        self.yt   = np.sqrt(2)*mtop/self.vh
+        self.yb   = np.sqrt(2)*mbot/self.vh
+        self.ytau = np.sqrt(2)*mtau/self.vh
+        self.yc   = np.sqrt(2)*mcharm/self.vh
+        self.ys   = np.sqrt(2)*mstrange/self.vh
+        self.ymuon = np.sqrt(2)*mmuon/self.vh 
+        self.yu   = np.sqrt(2)*mup/self.vh
+        self.yd   = np.sqrt(2)*mdown/self.vh
+        self.ye = np.sqrt(2)*melectron/self.vh     
 
         # Daisy thermal loop corrections
         self.cT = (14./3.*self.L0 + self.L1 + self.L2 + 2./3.*self.L3 + 3./2.*gl**2 + 3./4.*(gl**2 + gy**2) + 3.*(self.yt**2 + self.yb**2 + self.yc**2 + self.ys**2 + self.yu**2 + self.yd**2) + (self.ytau**2 + self.ymuon**2 + self.ye**2))/24.
 
         # Counterterms: Apply the renormalization conditions both to fix the minimum of the potential and the masses (first and second derivatives)
-        tl_vevs = np.array([vh/np.sqrt(3), vh/np.sqrt(3), 0., vh/np.sqrt(3), 0.]) # Set VEVs at T=0
+        tl_vevs = np.array([self.vh/np.sqrt(3), self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.]) # Set VEVs at T=0
         gradT0 = self.gradV(tl_vevs,0.) # Take the first derivatives of the potential at the minimum
         Hess = self.d2V(tl_vevs,0.) # Use built-in d2V function to extrac the second derivative of the T=0 potential (tree + CW)        
         Hess_tree = self.massSqMatrix(tl_vevs) # Use analytical form of mass matrix in the gauge eigenbasis in the minimum
@@ -270,8 +240,8 @@ class model1(generic_potential.generic_potential):
         # V: Vector bosons W+, W-, Z, gam (L = 0, T = +/-1) -- only L-polarisations have to be T-corrected!
 
         # thermally-corrected longitudinal (L) vector bosons
-        gl = 2*mW/vh
-        gy = 2*np.sqrt(mZ**2 - mW**2)/vh
+        gl = 2*self.mW/self.vh
+        gy = 2*np.sqrt(self.mZ**2 - self.mW**2)/self.vh
         
         mWL   = (((H10**2 + H11**2 + H20**2 + H21**2 + H30**2 + H31**2)/4.+11./6.*T**2)*gl**2)
 
@@ -378,85 +348,4 @@ class model1(generic_potential.generic_potential):
 
     def approxZeroTMin(self):
         # Approximate minimum at T=0. Giving tree-level minimum
-        return [np.array([vh/np.sqrt(3), vh/np.sqrt(3), 0, vh/np.sqrt(3), 0])]
-"""
-def findTrans(pars, isMasses = True):
-
-    output = []
-    inMn1 = pars[0] if isMasses else np.sqrt((pars[0]+pars[1])/2.)
-    inMn2 = pars[1] if isMasses else np.sqrt((pars[0]-pars[1])/2.)
-    inMch1 = pars[2] if isMasses else np.sqrt((pars[2]+pars[3])/2.)
-    inMch2 = pars[3] if isMasses else np.sqrt((pars[2]-pars[3])/2.)
-
-    m = A4_vev1(Mn1=inMn1,Mn2=inMn2,Mch1=inMch1,Mch2=inMch2)
-
-    n_trans = 0
-    try:
-        m.findAllTransitions()
-        n_phases = len(m.phases)
-        n_trans = len(m.TnTrans)
-
-        model_info = {
-            "Mn1": inMn1,
-            "Mn2": inMn2,
-            "Mch1": inMch1,
-            "Mch2": inMch2,
-            "L1": m.L1,
-            "L2": m.L2,
-            "L3": m.L3,
-            "L4": m.L4,
-            "NPhases": n_phases,
-            "NTrans": n_trans
-        }
-        if(len(m.TnTrans)>0):
-            for ind in range(0,len(m.TnTrans)):
-                #ind_trans = np.where(m.TnTrans == trans)[0]
-                if(m.TnTrans[0]['trantype']==1): 
-                    gw = gw_spectrum(m, ind, turb_on=True)
-                    #print('GW computed')
-                    output.append(model_info | gw.info)
-    except:
-        pass
-                
-    return output
-
-def createPars(box, n, isMasses=True, lin=True):
-    print('Creating Parameters List...')
-    Mn1 = np.linspace(box[0][0], box[-1][0], n[0], dtype=float) if lin else np.logspace(box[0][0], box[-1][0], n[0], dtype=float)
-    Mn2 = np.linspace(box[0][1], box[-1][1], n[1], dtype=float) if lin else np.logspace(box[0][1], box[-1][1], n[1], dtype=float)
-    Mch1 = np.linspace(box[0][2], box[-1][2], n[2], dtype=float) if lin else np.logspace(box[0][2], box[-1][2], n[2], dtype=float)
-    Mch2 = np.linspace(box[0][3], box[-1][3], n[3], dtype=float) if lin else np.logspace(box[0][3], box[-1][3], n[3], dtype=float)
-    pars = np.array(np.meshgrid(Mn1, Mn2, Mch1, Mch2)).T.reshape(-1, 4)
-    print('Raw parameters list: ', pars.shape)
-    pars = np.unique(pars, axis=0)
-    ind_to_remove = np.where((pars[...,0] - pars[...,1]) < 0)
-    pars = np.delete(pars, ind_to_remove, 0)
-    print('Unique parameters list shape before removing invalid masses: ', pars.shape)
-    if isMasses:
-        ind_to_remove = np.where(((pars[...,0]**2 - pars[...,1]**2)**2 - 4.*(pars[...,2]**2 - pars[...,3]**2)**2) < 0)
-    else:
-        ind_to_remove = np.where((pars[...,1]**2 - 4.*pars[...,3]**2) < 0)
-
-    pars = np.delete(pars, ind_to_remove, 0)
-    print('Unique parameters list shape after removing invalid masses: ', pars.shape)
-
-    return pars
-
-def main():
-    file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
-
-    #pars_list = createPars([[100.,100.,300.,300.],[300.,299.,500.,499.]],[5,5,5,5])
-    pars_list = createPars([[270.,10.,222.67,175],[270.,10.,222.67,185 ]],[1,1,1,41])
-    #pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
-    print(pars_list)
-    #sys.stdout = open(os.devnull, 'w')
-    pool = mp.Pool()
-    output_list = pool.map(findTrans, list(pars_list))
-    output_flat = [item for sublist in output_list for item in sublist if sublist != []]
-    output_data = pd.DataFrame(output_flat)
-    output_data.to_csv(file_name)
-    #sys.stdout = sys.__stdout__
-    print("Finished")
-    
-if __name__ == "__main__":
-  main()
+        return [np.array([self.vh/np.sqrt(3), self.vh/np.sqrt(3), 0, self.vh/np.sqrt(3), 0])]
