@@ -446,16 +446,16 @@ def main():
     file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
 
     #pars_list = createPars([[100.,100.,300.,300.],[300.,299.,500.,499.]],[5,5,5,5])
-    pars_list = createPars([[270.,10.,222.67,175],[270.,10.,222.67,185 ]],[1,1,1,41])
+    pars_list = createPars([[270.,10.,220.,185.],[270.,10.,230.,185. ]],[1,1,101,1])
     #pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
     print(pars_list)
-    #sys.stdout = open(os.devnull, 'w')
+    sys.stdout = open(os.devnull, 'w')
     pool = mp.Pool()
     output_list = pool.map(findTrans, list(pars_list))
     output_flat = [item for sublist in output_list for item in sublist if sublist != []]
     output_data = pd.DataFrame(output_flat)
     output_data.to_csv(file_name)
-    #sys.stdout = sys.__stdout__
+    sys.stdout = sys.__stdout__
     print("Finished")
     
 if __name__ == "__main__":
