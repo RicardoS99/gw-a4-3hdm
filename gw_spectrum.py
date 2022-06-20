@@ -82,10 +82,17 @@ class gw_spectrum():
 
     def swPeak(self):
         kin = self.kf*self.alpha/(1.+self.alpha)
-        g=self.g/100.
-        T=self.Tnuc/100.
+        g = self.g/100.
+        T = self.Tnuc/100.
+        F = 3.57e-5/g**(1/3.)
+        cs = 1/np.sqrt(3.)
+        HR = (8.*np.pi)**(1/3.)*self.v/self.beta
+        fpeak = (26e-6)/HR*T*g**(1/6.)
+        peak = 0.687e-2*F (HR/np.sqrt(cs))**(2) * kin**(3/2.)
+
+        """
         fpeak = (1.9e-5)*self.beta*T*(g**(1/6.))/self.v
-        peak = (2.65e-6)/self.beta*(kin**2)/(g**(1/3.))*self.v
+        peak = (2.65e-6)/self.beta*(kin**2)/(g**(1/3.))*self.v"""
 
         return fpeak, peak
 
@@ -99,18 +106,16 @@ class gw_spectrum():
         return fpeak, peak
 
     def calc_alpha(self):
-        Thigh = self.Tcrit + self.delta
-        Tlow = self.Tcrit - self.delta
-        xf = self.m.TcTrans[self.id]['high_vev']
-        xt = self.m.TcTrans[self.id]['low_vev']
-        vf = self.m.Vtot(xf,Thigh)
-        vt = self.m.Vtot(xt,Tlow)
-        dvf = (self.m.Vtot(xf,self.Tcrit+1.5*self.delta) -self.m.Vtot(xf,self.Tcrit+0.5*self.delta))/self.delta
-        dvt = (self.m.Vtot(xt,self.Tcrit-0.5*self.delta) -self.m.Vtot(xt,self.Tcrit-1.5*self.delta))/self.delta
+        xf = self.m.TnTrans[self.id]['high_vev']
+        xt = self.m.TnTrans[self.id]['low_vev']
+        vf = self.m.Vtot(xf,self.Tnuc)
+        vt = self.m.Vtot(xt,self.Tnuc)
+        dvf = (self.m.Vtot(xf,self.Tnuc+0.5*self.delta) -self.m.Vtot(xf,self.Tnuc-0.5*self.delta))/self.delta
+        dvt = (self.m.Vtot(xt,self.Tnuc+0.5*self.delta) -self.m.Vtot(xt,self.Tnuc-0.5*self.delta))/self.delta
         
-        rho = (np.pi**2 *self.g*self.Tcrit**4) /30.
+        rho = (np.pi**2 *self.g*self.Tnuc**4) /30.
 
-        return ((vf-self.Tcrit/4*dvf)-(vt-self.Tcrit/4*dvt))/rho
+        return ((vf-self.Tnuc/4*dvf)-(vt-self.Tnuc/4*dvt))/rho
 
     def calc_beta(self):
         def divpoly(p, x):
@@ -156,13 +161,20 @@ class gw_spectrum():
         T_vec = np.delete(T_vec, ind_to_rem)
         S_vec = np.delete(S_vec, ind_to_rem)
 
-        fit = np.polyfit(T_vec, S_vec, deg=9)
 
-        #deltaT = self.Tcrit - self.Tnuc
-        #Ts = np.linspace(self.Tnuc-deltaT, self.Tnuc+deltaT, 30)
-        #ActionsT = compute_action_vec(xt, xf, Ts)   
-        #print(ActionsT)
+        fit1 = np.polyfit(T_vec, S_vec, deg=7)
+        fit2 = np.polyfit(T_vec, S_vec, deg=8)
+        fit3 = np.polyfit(T_vec, S_vec, deg=9)
 
-        #action = CubicSpline(Ts, ActionsT)
+        output1 = divpoly(fit1,self.Tnuc)*self.Tnuc
+        output2 = divpoly(fit2,self.Tnuc)*self.Tnuc
+        output3 = divpoly(fit3,self.Tnuc)*self.Tnuc
 
-        return divpoly(fit,self.Tnuc)*self.Tnuc
+        if(10 < output3 < 100000):
+            return output1
+        elif (10 < output2 < 100000):
+            return output2
+        elif (10 < output3 < 100000):
+            return output3
+        else:
+            return 1
