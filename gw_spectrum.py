@@ -88,7 +88,7 @@ class gw_spectrum():
         cs = 1/np.sqrt(3.)
         HR = (8.*np.pi)**(1/3.)*self.v/self.beta
         fpeak = (26e-6)/HR*T*g**(1/6.)
-        peak = 0.687e-2*F (HR/np.sqrt(cs))**(2) * kin**(3/2.)
+        peak = 0.687e-2*F *(HR/np.sqrt(cs))**(2) * kin**(3/2.)
 
         """
         fpeak = (1.9e-5)*self.beta*T*(g**(1/6.))/self.v
@@ -144,11 +144,11 @@ class gw_spectrum():
         xf = self.m.TnTrans[self.id]['high_vev']
         xt = self.m.TnTrans[self.id]['low_vev']
 
-        dT = (self.Tcrit-self.Tnuc)*1.0
+        dT = np.minimum(self.Tcrit-self.Tnuc,10)
         nsteps = int(10*2*dT)+1 if dT>1.0 else 21
 
         #T_vec = np.linspace(self.Tnuc-dT, self.Tnuc+dT, nsteps)
-        T_vec = np.linspace(self.Tnuc-dT, self.Tnuc+dT, 51)
+        T_vec = np.linspace(self.Tnuc-dT, self.Tnuc+dT, 101)
         S_vec = np.zeros_like(T_vec)
 
         for i in range(0, len(S_vec)):
@@ -171,22 +171,4 @@ class gw_spectrum():
         output2 = divpoly(fit2,self.Tnuc)*self.Tnuc
         output3 = divpoly(fit3,self.Tnuc)*self.Tnuc
 
-        print("output 1:", output1)
-        print("output 2:", output2)
-        print("output 3:", output3)
-
-        plt.plot(T_vec, S_vec)
-        plt.plot(T_vec, np.polyval(fit1,T_vec), label = 'Fit poly order: 9')
-        plt.plot(T_vec, np.polyval(fit2,T_vec), label = 'Fit poly order: 10')
-        plt.plot(T_vec, np.polyval(fit3,T_vec), label = 'Fit poly order: 11')
-        plt.legend()
-        plt.show()
-
-        if(10 < output3 < 100000):
-            return output3
-        elif (10 < output2 < 100000):
-            return output2
-        elif (10 < output1 < 100000):
-            return output1
-        else:
-            return 1
+        return (output1+output2+output3)/3

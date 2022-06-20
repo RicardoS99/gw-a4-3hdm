@@ -391,6 +391,29 @@ def findTrans(pars, isMasses = True):
     m = A4_vev1(Mn1=inMn1,Mn2=inMn2,Mch1=inMch1,Mch2=inMch2)
 
     n_trans = 0
+    m.findAllTransitions()
+    n_phases = len(m.phases)
+    n_trans = len(m.TnTrans)
+    model_info = {
+        "Mn1": inMn1,
+        "Mn2": inMn2,
+        "Mch1": inMch1,
+        "Mch2": inMch2,
+        "L1": m.L1,
+        "L2": m.L2,
+        "L3": m.L3,
+        "L4": m.L4,
+        "NPhases": n_phases,
+        "NTrans": n_trans
+    }
+    if(len(m.TnTrans)>0):
+        for ind in range(0,len(m.TnTrans)):
+            #ind_trans = np.where(m.TnTrans == trans)[0]
+            if(m.TnTrans[0]['trantype']==1): 
+                gw = gw_spectrum(m, ind, turb_on=True)
+                if(10 < gw.beta < 100000):
+                    output.append(model_info | gw.info)
+    """
     try:
         m.findAllTransitions()
         n_phases = len(m.phases)
@@ -413,12 +436,12 @@ def findTrans(pars, isMasses = True):
                 #ind_trans = np.where(m.TnTrans == trans)[0]
                 if(m.TnTrans[0]['trantype']==1): 
                     gw = gw_spectrum(m, ind, turb_on=True)
-                    print(gw.info)
+                    print(gw.info['beta'])
                     #print('GW computed')
                     #if(10 < gw.beta < 100000):
                     output.append(model_info | gw.info)
     except:
-        pass
+        pass"""
                 
     return output
 
@@ -457,7 +480,7 @@ def main():
     output_flat = [item for sublist in output_list for item in sublist if sublist != []]
     output_data = pd.DataFrame(output_flat)
     output_data.to_csv(file_name)
-    #sys.stdout = sys.__stdout__
+    sys.stdout = sys.__stdout__
     print("Finished")
     
 if __name__ == "__main__":
