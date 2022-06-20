@@ -414,7 +414,8 @@ def findTrans(pars, isMasses = True):
                 if(m.TnTrans[0]['trantype']==1): 
                     gw = gw_spectrum(m, ind, turb_on=True)
                     #print('GW computed')
-                    output.append(model_info | gw.info)
+                    if(10 < gw.beta < 100000):
+                        output.append(model_info | gw.info)
     except:
         pass
                 
@@ -446,7 +447,7 @@ def main():
     file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
 
     #pars_list = createPars([[100.,100.,300.,300.],[300.,299.,500.,499.]],[5,5,5,5])
-    pars_list = createPars([[270.,10.,220.,185.],[270.,10.,230.,185. ]],[1,1,101,1])
+    pars_list = createPars([[356.8,356.,222.8,223.],[357.2,356.,222.8,223. ]],[21,1,1,1])
     #pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
     print(pars_list)
     sys.stdout = open(os.devnull, 'w')
