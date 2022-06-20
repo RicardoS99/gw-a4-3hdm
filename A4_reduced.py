@@ -413,9 +413,10 @@ def findTrans(pars, isMasses = True):
                 #ind_trans = np.where(m.TnTrans == trans)[0]
                 if(m.TnTrans[0]['trantype']==1): 
                     gw = gw_spectrum(m, ind, turb_on=True)
+                    print(gw.info)
                     #print('GW computed')
-                    if(10 < gw.beta < 100000):
-                        output.append(model_info | gw.info)
+                    #if(10 < gw.beta < 100000):
+                    output.append(model_info | gw.info)
     except:
         pass
                 
@@ -447,16 +448,16 @@ def main():
     file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
 
     #pars_list = createPars([[100.,100.,300.,300.],[300.,299.,500.,499.]],[5,5,5,5])
-    pars_list = createPars([[356.8,356.,222.8,223.],[357.2,356.,222.8,223. ]],[21,1,1,1])
+    pars_list = createPars([[356.8,356.,222.8,223.],[357.2,356.,222.8,223. ]],[1,1,1,1])
     #pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
     print(pars_list)
-    sys.stdout = open(os.devnull, 'w')
+    #sys.stdout = open(os.devnull, 'w')
     pool = mp.Pool()
     output_list = pool.map(findTrans, list(pars_list))
     output_flat = [item for sublist in output_list for item in sublist if sublist != []]
     output_data = pd.DataFrame(output_flat)
     output_data.to_csv(file_name)
-    sys.stdout = sys.__stdout__
+    #sys.stdout = sys.__stdout__
     print("Finished")
     
 if __name__ == "__main__":
