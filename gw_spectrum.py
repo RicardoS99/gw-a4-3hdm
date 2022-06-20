@@ -165,7 +165,6 @@ class gw_spectrum():
         fit1 = np.polyfit(T_vec, S_vec, deg=9)
         fit2 = np.polyfit(T_vec, S_vec, deg=10)
         fit3 = np.polyfit(T_vec, S_vec, deg=11)
-        print("here")
 
         output1 = divpoly(fit1,self.Tnuc)*self.Tnuc
         output2 = divpoly(fit2,self.Tnuc)*self.Tnuc

@@ -391,34 +391,11 @@ def findTrans(pars, isMasses = True):
     m = A4_vev1(Mn1=inMn1,Mn2=inMn2,Mch1=inMch1,Mch2=inMch2)
 
     n_trans = 0
-    m.findAllTransitions()
-    n_phases = len(m.phases)
-    n_trans = len(m.TnTrans)
-    model_info = {
-        "Mn1": inMn1,
-        "Mn2": inMn2,
-        "Mch1": inMch1,
-        "Mch2": inMch2,
-        "L1": m.L1,
-        "L2": m.L2,
-        "L3": m.L3,
-        "L4": m.L4,
-        "NPhases": n_phases,
-        "NTrans": n_trans
-    }
-    if(len(m.TnTrans)>0):
-        for ind in range(0,len(m.TnTrans)):
-            #ind_trans = np.where(m.TnTrans == trans)[0]
-            if(m.TnTrans[0]['trantype']==1): 
-                gw = gw_spectrum(m, ind, turb_on=True)
-                if(10 < gw.beta < 100000):
-                    output.append(model_info | gw.info)
-    """
+   
     try:
         m.findAllTransitions()
         n_phases = len(m.phases)
         n_trans = len(m.TnTrans)
-
         model_info = {
             "Mn1": inMn1,
             "Mn2": inMn2,
@@ -436,12 +413,10 @@ def findTrans(pars, isMasses = True):
                 #ind_trans = np.where(m.TnTrans == trans)[0]
                 if(m.TnTrans[0]['trantype']==1): 
                     gw = gw_spectrum(m, ind, turb_on=True)
-                    print(gw.info['beta'])
-                    #print('GW computed')
-                    #if(10 < gw.beta < 100000):
-                    output.append(model_info | gw.info)
+                    if(10 < gw.beta < 100000):
+                        output.append(model_info | gw.info)
     except:
-        pass"""
+        pass
                 
     return output
 
@@ -471,10 +446,10 @@ def main():
     file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
 
     #pars_list = createPars([[100.,100.,300.,300.],[300.,299.,500.,499.]],[5,5,5,5])
-    pars_list = createPars([[356.8,356.,222.8,223.],[357.2,356.,222.8,223. ]],[1,1,1,1])
+    pars_list = createPars([[356.8,356.,222.8,223.],[357.2,356.,222.8,223. ]],[21,1,1,1])
     #pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
     print(pars_list)
-    #sys.stdout = open(os.devnull, 'w')
+    sys.stdout = open(os.devnull, 'w')
     pool = mp.Pool()
     output_list = pool.map(findTrans, list(pars_list))
     output_flat = [item for sublist in output_list for item in sublist if sublist != []]
