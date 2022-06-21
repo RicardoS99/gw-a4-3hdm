@@ -90,10 +90,6 @@ class gw_spectrum():
         fpeak = (26e-6)/HR*T*g**(1/6.)
         peak = 0.687e-2*F *(HR/np.sqrt(cs))**(2) * kin**(3/2.)
 
-        """
-        fpeak = (1.9e-5)*self.beta*T*(g**(1/6.))/self.v
-        peak = (2.65e-6)/self.beta*(kin**2)/(g**(1/3.))*self.v"""
-
         return fpeak, peak
 
     def turbPeak(self):
