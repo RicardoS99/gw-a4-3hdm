@@ -380,45 +380,22 @@ class model1(generic_potential.generic_potential):
         # Approximate minimum at T=0. Giving tree-level minimum
         return [np.array([vh/np.sqrt(3), vh/np.sqrt(3), 0, vh/np.sqrt(3), 0])]
 """
-def findTrans(pars, isMasses = True):
+def findTrans(pars):
 
     output = []
-    inMn1 = pars[0] if isMasses else np.sqrt((pars[0]+pars[1])/2.)
-    inMn2 = pars[1] if isMasses else np.sqrt((pars[0]-pars[1])/2.)
-    inMch1 = pars[2] if isMasses else np.sqrt((pars[2]+pars[3])/2.)
-    inMch2 = pars[3] if isMasses else np.sqrt((pars[2]-pars[3])/2.)
+    inMn1 = pars[0]
+    inMn2 = pars[1]
+    inMch1 = pars[2]
+    inMch2 = pars[3]
 
     m = A4_vev1(Mn1=inMn1,Mn2=inMn2,Mch1=inMch1,Mch2=inMch2)
 
     n_trans = 0
-    m.findAllTransitions()
-    n_phases = len(m.phases)
-    n_trans = len(m.TnTrans)
-    model_info = {
-        "Mn1": inMn1,
-        "Mn2": inMn2,
-        "Mch1": inMch1,
-        "Mch2": inMch2,
-        "L1": m.L1,
-        "L2": m.L2,
-        "L3": m.L3,
-        "L4": m.L4,
-        "NPhases": n_phases,
-        "NTrans": n_trans
-    }
-    if(len(m.TnTrans)>0):
-        for ind in range(0,len(m.TnTrans)):
-            #ind_trans = np.where(m.TnTrans == trans)[0]
-            if(m.TnTrans[0]['trantype']==1): 
-                gw = gw_spectrum(m, ind, turb_on=True)
-                if(10 < gw.beta < 100000):
-                    output.append(model_info | gw.info)
-    """
+   
     try:
         m.findAllTransitions()
         n_phases = len(m.phases)
         n_trans = len(m.TnTrans)
-
         model_info = {
             "Mn1": inMn1,
             "Mn2": inMn2,
@@ -436,32 +413,43 @@ def findTrans(pars, isMasses = True):
                 #ind_trans = np.where(m.TnTrans == trans)[0]
                 if(m.TnTrans[0]['trantype']==1): 
                     gw = gw_spectrum(m, ind, turb_on=True)
-                    print(gw.info['beta'])
-                    #print('GW computed')
-                    #if(10 < gw.beta < 100000):
-                    output.append(model_info | gw.info)
+                    if(10 < gw.beta < 100000):
+                        output.append(model_info | gw.info)
     except:
-        pass"""
+        pass
                 
     return output
 
-def createPars(box, n, isMasses=True, lin=True):
+def createPars(box, n, isMasses=True): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isMasses=False: Mn1+Mn2, Mn1-Mn2, Mch1+Mch2, Mch1-Mch2
     print('Creating Parameters List...')
-    Mn1 = np.linspace(box[0][0], box[-1][0], n[0], dtype=float) if lin else np.logspace(box[0][0], box[-1][0], n[0], dtype=float)
-    Mn2 = np.linspace(box[0][1], box[-1][1], n[1], dtype=float) if lin else np.logspace(box[0][1], box[-1][1], n[1], dtype=float)
-    Mch1 = np.linspace(box[0][2], box[-1][2], n[2], dtype=float) if lin else np.logspace(box[0][2], box[-1][2], n[2], dtype=float)
-    Mch2 = np.linspace(box[0][3], box[-1][3], n[3], dtype=float) if lin else np.logspace(box[0][3], box[-1][3], n[3], dtype=float)
+    Mn1 = np.linspace(box[0][0], box[-1][0], n[0], dtype=float)
+    Mn2 = np.linspace(box[0][1], box[-1][1], n[1], dtype=float)
+    Mch1 = np.linspace(box[0][2], box[-1][2], n[2], dtype=float)
+    Mch2 = np.linspace(box[0][3], box[-1][3], n[3], dtype=float)
     pars = np.array(np.meshgrid(Mn1, Mn2, Mch1, Mch2)).T.reshape(-1, 4)
+    if(isMasses==False):
+        ind_to_remove = np.where(pars[...,3]== 0.)
+        pars = np.delete(pars, ind_to_remove, 0)
+        ind_to_remove = np.where(pars[...,0]-np.abs(pars[...,1])<0.)
+        pars = np.delete(pars, ind_to_remove, 0)
+        ind_to_remove = np.where(pars[...,2]-np.abs(pars[...,3])<0.)
+        pars = np.delete(pars, ind_to_remove, 0)
+
+        pars_temp = np.zeros_like(pars)
+        pars_temp[...,0] = (pars[...,0] + pars[...,1])/2.
+        pars_temp[...,1] = (pars[...,0] - pars[...,1])/2.
+        pars_temp[...,2] = (pars[...,2] + pars[...,3])/2.
+        pars_temp[...,3] = (pars[...,2] - pars[...,3])/2.
+        pars = pars_temp
+
+
     print('Raw parameters list: ', pars.shape)
     pars = np.unique(pars, axis=0)
     ind_to_remove = np.where((pars[...,0] - pars[...,1]) < 0)
     pars = np.delete(pars, ind_to_remove, 0)
+        
     print('Unique parameters list shape before removing invalid masses: ', pars.shape)
-    if isMasses:
-        ind_to_remove = np.where(((pars[...,0]**2 - pars[...,1]**2)**2 - 4.*(pars[...,2]**2 - pars[...,3]**2)**2) < 0)
-    else:
-        ind_to_remove = np.where((pars[...,1]**2 - 4.*pars[...,3]**2) < 0)
-
+    ind_to_remove = np.where(((pars[...,0]**2 - pars[...,1]**2)**2 - 4.*(pars[...,2]**2 - pars[...,3]**2)**2) < 0)
     pars = np.delete(pars, ind_to_remove, 0)
     print('Unique parameters list shape after removing invalid masses: ', pars.shape)
 
@@ -470,11 +458,13 @@ def createPars(box, n, isMasses=True, lin=True):
 def main():
     file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
 
-    #pars_list = createPars([[100.,100.,300.,300.],[300.,299.,500.,499.]],[5,5,5,5])
-    pars_list = createPars([[356.8,356.,222.8,223.],[357.2,356.,222.8,223. ]],[1,1,1,1])
+    pars_list = createPars([[10.,0.,10.,-30.],[310.,100.,310.,30.]],[2,2,2,2], isMasses=False)
+    #pars_list = createPars([[356.8,356.,222.8,223.],[357.2,356.,222.8,223. ]],[1,1,1,1])
     #pars_list = createPars([[1.,-3.,1.,-3.],[6.,5.,6.,5.]],[5,5,5,5], isMasses=False, lin=False)
-    print(pars_list)
-    #sys.stdout = open(os.devnull, 'w')
+    print(pars_list) 
+
+    
+    sys.stdout = open(os.devnull, 'w')
     pool = mp.Pool()
     output_list = pool.map(findTrans, list(pars_list))
     output_flat = [item for sublist in output_list for item in sublist if sublist != []]
@@ -482,6 +472,7 @@ def main():
     output_data.to_csv(file_name)
     sys.stdout = sys.__stdout__
     print("Finished")
+    
     
 if __name__ == "__main__":
   main()

@@ -105,10 +105,12 @@ def plot1dtht(m, tmin, tmax, vabs, caxs=[0], saxs=[1], T=[0], treelevel=False, s
     tht = np.linspace(tmin,tmax,n)
 
     for i in range(n):
+        X[i,0] = vabs
         for ax in caxs:
             X[i,np.abs(ax)] = np.sign(ax)*vabs*np.cos(tht[i])
         for ax in saxs:
             X[i,np.abs(ax)] = np.sign(ax)*vabs*np.sin(tht[i])
+       
 
 
     for t in T:
@@ -163,25 +165,34 @@ def plotActionT(m, trans, Tmin=0.001, Tmax=500., n=50):
     return T_vec, S_vec
 
 def main():  
-    m = A4_vev1(Mn1=200.,Mn2=100.,Mch1=350.,Mch2=349.75)
+    m = A4_vev1(Mn1=413,Mn2=112.,Mch1=114.,Mch2=110.)
     #m.findAllTransitions()
     #m.prettyPrintTnTrans()
-
+    #gw = gw_spectrum(m, 0, turb_on=True)
+    #print(gw.info)
     #plot2d(m,(-300,300,-300,300),T=[0,30,60,90,120,150],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.01)
     T = np.linspace(0.,140.,15)
     print(T)
     #plot2d(m,(-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1,-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1),T=T,n=200, xaxis=[0,1,3], yaxis=[2,4])
     #plot2d(m,(-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1,-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1),T=T,n=200, xaxis=[0,1,3], yaxis=[2,-4])
     #plot1d(m,m.TnTrans[0]['high_vev'],m.TnTrans[0]['low_vev'],T=T)
-    plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
+
+    plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0])
     #plot1d(m,[0,0,0,0,0],[0,0,246.22/np.sqrt(3),0,246.22/np.sqrt(3)],T=T)
     #plot1d(m,[0,0,0,0,0],[0,0,246.22/np.sqrt(3),0,-246.22/np.sqrt(3)],T=T)
     #plot1d(m,[0,0,246.22/np.sqrt(3),0,246.22/np.sqrt(3)],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     #plot1d(m,[0,0,246.22/np.sqrt(3),0,-246.22/np.sqrt(3)],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     #plot1d(m,[0,246.22/np.sqrt(3),0,246./np.sqrt(3),0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
-    plot1dtht(m,0,np.pi/2,136.015362,caxs=[0,1,3],saxs=[2,4],T=T)
-    plot1dtht(m,0,np.pi/2,136.015362,caxs=[0,1,3],saxs=[2,-4],T=T)
+    
+    plot1dtht(m,0,np.pi/2,140.755284,caxs=[1,3],saxs=[2,4],T=T)
+    #plot1dtht(m,0,np.pi/2,20.,caxs=[0,1,3],saxs=[2,4],T=T)
 
+    #plot1d(A4_vev1(Mn1=413.,Mn2=312.,Mch1=111,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[83.315])
+    #plot1d(A4_vev1(Mn1=413.,Mn2=312.,Mch1=111,Mch2=10.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[84.401])
+    #plot1d(A4_vev1(Mn1=413.,Mn2=212.,Mch1=211,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[88.881])
+    #plot1d(A4_vev1(Mn1=313.,Mn2=112.,Mch1=311,Mch2=310.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[92.736])
+    #plot1d(A4_vev1(Mn1=413.,Mn2=12.,Mch1=311,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[51.16])
+    #plt.show()
 
     """
     m.findAllTransitions()
