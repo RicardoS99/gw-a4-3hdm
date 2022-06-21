@@ -108,8 +108,8 @@ class A4_vev1(generic_potential.generic_potential):
 
 
     def forbidPhaseCrit(self, X):
-        return (np.array([X])[...,0] < -5.0).any()# or (np.array([X])[...,1] < -5.0).any() or (np.array([X])[...,2] < -5.0).any() or (np.array([X])[...,3] < -5.0).any() or (np.array([X])[...,4] > 5.0).any())
-
+        return (np.array([X])[...,0] < -1E-3).any()
+        
     def V0(self, X):
 
         # A4 flavour symmetric potential with three SU(2) doublets
