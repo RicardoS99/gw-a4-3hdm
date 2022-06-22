@@ -95,7 +95,7 @@ def createPars(box, n, isMasses=True): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isM
 def main():
     file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
 
-    pars_list = createPars([[100.,80.,280.,-50.],[900.,80.,280.,50.]],[41,1,1,2], isMasses=False)
+    pars_list = createPars([[10.,0.,10.,-30.],[310.,100.,310.,30.]],[4,6,4,7], isMasses=False)
     print(pars_list) 
   
     sys.stdout = open(os.devnull, 'w')
