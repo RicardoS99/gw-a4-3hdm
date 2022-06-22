@@ -17,17 +17,13 @@ class A4_vev1(generic_potential.generic_potential):
         self.Ndim = 5 # Number of dynamic classical fields. 1 real field + 2 complex fields -> 5 real fields 
         self.renormScaleSq = float(self.vh**2) # Renormalisation scale
         
-        if ((Mn1**2 - Mn2**2)**2 >= 4.*(Mch1**2 - Mch2**2)**2 ): #Check if masses are allowed
+        if ((6.*(float(Mn1)**2 - float(Mn2)**2)/(self.vh**2))**2 - 12*(2.*np.sqrt(3)*(float(Mch1)**2 - float(Mch2)**2)/(self.vh**2))**2 >0. ): #Check if masses are allowed
             self.Mn1 = float(Mn1)
             self.Mn2 = float(Mn2)
             self.Mch1 = float(Mch1)
             self.Mch2 = float(Mch2) 
         else:
-            self.Mn1 = 0.
-            self.Mn2 = 0.
-            self.Mch1 = 0.
-            self.Mch2 = 0. 
-            print('Not allowed masses!')
+            raise Exception('Not allowed masses!')
         
         #Calculate constants from masses
         self.M0 = np.sqrt(3)/2.*Mh**2
