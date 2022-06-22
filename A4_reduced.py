@@ -95,10 +95,6 @@ def createPars(box, n, isMasses=True): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isM
 
 def main():
     if len(sys.argv) > 1:
-        inputfile_f = np.genfromtxt(sys.argv[1],usecols=0, skip_header=1, delimiter=',', dtype=str)
-        inputfile_v = np.genfromtxt(sys.argv[1],usecols=[1,2,3,4,5,6,7,8,9,10,11,12], skip_header=1, delimiter=',', dtype=float)
-        inputfile_b = np.genfromtxt(sys.argv[1],usecols=13, skip_header=1, delimiter=',', dtype=bool)
-
         inputfile = pd.read_csv(sys.argv[1])
         print(inputfile.iterrows())
 
@@ -112,7 +108,7 @@ def main():
             massFlag = True if input[13]=='True' else False
             
             pars_list = createPars(box,divs, isMasses=massFlag)
-            #print(pars_list)
+            print(pars_list)
             #print(np.where((6.*(pars_list[...,0]**2 - pars_list[...,1]**2))**2 - 12*(2.*np.sqrt(3)*(pars_list[...,2]**2 - pars_list[...,3]**2))**2 <= 0. ))
             
             sys.stdout = open(os.devnull, 'w')
