@@ -23,10 +23,7 @@ class A4_vev1(generic_potential.generic_potential):
             self.Mch1 = float(Mch1)
             self.Mch2 = float(Mch2) 
         else:
-            self.Mn1 = 0.
-            self.Mn2 = 0.
-            self.Mch1 = 0.
-            self.Mch2 = 0.
+            raise ValueError ('Invalid Masses')
         
         #Calculate constants from masses
         self.M0 = np.sqrt(3)/2.*Mh**2

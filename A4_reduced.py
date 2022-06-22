@@ -1,5 +1,6 @@
 from __future__ import division
 from __future__ import print_function
+from tokenize import String
 from cosmoTransitions import generic_potential
 from cosmoTransitions import transitionFinder as tf
 from cosmoTransitions import pathDeformation as pd
@@ -64,7 +65,7 @@ def createPars(box, n, isMasses=True): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isM
     Mch1 = np.linspace(box[0][2], box[-1][2], n[2], dtype=float)
     Mch2 = np.linspace(box[0][3], box[-1][3], n[3], dtype=float)
     pars = np.array(np.meshgrid(Mn1, Mn2, Mch1, Mch2)).T.reshape(-1, 4)
-    if(isMasses==False):
+    if(isMasses is False):
         ind_to_remove = np.where(pars[...,3]== 0.)
         pars = np.delete(pars, ind_to_remove, 0)
         ind_to_remove = np.where(pars[...,0]-np.abs(pars[...,1])<0.)
@@ -86,26 +87,42 @@ def createPars(box, n, isMasses=True): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isM
     pars = np.delete(pars, ind_to_remove, 0)
         
     print('Unique parameters list shape before removing invalid masses: ', pars.shape)
-    ind_to_remove = np.where(((pars[...,0]**2 - pars[...,1]**2)**2 - 4.*(pars[...,2]**2 - pars[...,3]**2)**2) < 0)
+    ind_to_remove = np.where((6.*(pars[...,0]**2 - pars[...,1]**2))**2 - 12*(2.*np.sqrt(3)*(pars[...,2]**2 - pars[...,3]**2))**2 <= 0. )
     pars = np.delete(pars, ind_to_remove, 0)
     print('Unique parameters list shape after removing invalid masses: ', pars.shape)
 
     return pars
 
 def main():
-    file_name = sys.argv[1] if len(sys.argv) > 1 else 'output/data.csv '
+    if len(sys.argv) > 1:
+        inputfile_f = np.genfromtxt(sys.argv[1],usecols=0, skip_header=1, delimiter=',', dtype=str)
+        inputfile_v = np.genfromtxt(sys.argv[1],usecols=[1,2,3,4,5,6,7,8,9,10,11,12], skip_header=1, delimiter=',', dtype=float)
+        inputfile_b = np.genfromtxt(sys.argv[1],usecols=13, skip_header=1, delimiter=',', dtype=bool)
 
-    pars_list = createPars([[10.,0.,10.,-30.],[310.,100.,310.,30.]],[4,6,4,7], isMasses=False)
-    print(pars_list) 
-  
-    sys.stdout = open(os.devnull, 'w')
-    pool = mp.Pool()
-    output_list = pool.map(findTrans, list(pars_list))
-    output_flat = [item for sublist in output_list for item in sublist if sublist != []]
-    output_data = pd.DataFrame(output_flat)
-    output_data.to_csv(file_name)
-    sys.stdout = sys.__stdout__
-    print("Finished")
+        inputfile = pd.read_csv(sys.argv[1])
+        print(inputfile.iterrows())
+
+        for index, input in inputfile.iterrows():
+            file_name = input[0]
+
+            print('input[1]', float(input[1]))
+
+            box = [[float(input[1]),float(input[2]),float(input[3]),float(input[4])],[float(input[5]),float(input[6]),float(input[7]),float(input[8])]]
+            divs = [int(input[9]),int(input[10]),int(input[11]),int(input[12])]
+            massFlag = True if input[13]=='True' else False
+            
+            pars_list = createPars(box,divs, isMasses=massFlag)
+            #print(pars_list)
+            #print(np.where((6.*(pars_list[...,0]**2 - pars_list[...,1]**2))**2 - 12*(2.*np.sqrt(3)*(pars_list[...,2]**2 - pars_list[...,3]**2))**2 <= 0. ))
+            
+            sys.stdout = open(os.devnull, 'w')
+            pool = mp.Pool()
+            output_list = pool.map(findTrans, list(pars_list))
+            output_flat = [item for sublist in output_list for item in sublist if sublist != []]
+            output_data = pd.DataFrame(output_flat)
+            output_data.to_csv(file_name)
+            sys.stdout = sys.__stdout__
+            print(file_name, " saved!")
     
 if __name__ == "__main__":
   main()
