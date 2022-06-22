@@ -1,4 +1,3 @@
-from cProfile import label
 from A4_model import A4_vev1
 from gw_spectrum import gw_spectrum
 
@@ -8,11 +7,10 @@ from cosmoTransitions import pathDeformation as pd
 
 import numpy as np
 
-from scipy.interpolate import CubicSpline
-
+import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50, clevs=200, cfrac=.8, **contourParams):
+def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50, clevs=200, cfrac=.8, filled=False, **contourParams):
     """
     Makes a countour plot of the potential.
     Parameters
@@ -62,7 +60,7 @@ def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50,
             Z = m.V0(XY) if treelevel else m.Vtot(XY,T[k])
             minZ, maxZ = min(Z.ravel()), max(Z.ravel())
             N = np.linspace(minZ, minZ+(maxZ-minZ)*cfrac, clevs)
-            axs[i,j].contour(X,Y,Z, N, **contourParams)
+            axs[i,j].contourf(X,Y,Z, N, **contourParams) if filled else axs[i,j].contour(X,Y,Z, N, **contourParams)
             axs[i,j].set_title("T = " + str(T[k]) + " GeV")
             k+=1
       else:
@@ -70,7 +68,7 @@ def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50,
             Z = m.V0(XY) if treelevel else m.Vtot(XY,T[k])
             minZ, maxZ = min(Z.ravel()), max(Z.ravel())
             N = np.linspace(minZ, minZ+(maxZ-minZ)*cfrac, clevs)
-            axs[i,j].contour(X,Y,Z, N, **contourParams)
+            axs[i,j].contourf(X,Y,Z, N, **contourParams) if filled else axs[i,j].contour(X,Y,Z, N, **contourParams)
             axs[i,j].set_title("T = " + str(T[k]) + " GeV")
             k+=1
 
@@ -164,27 +162,53 @@ def plotActionT(m, trans, Tmin=0.001, Tmax=500., n=50):
 
     return T_vec, S_vec
 
-def main():  
-    m = A4_vev1(Mn1=413,Mn2=112.,Mch1=114.,Mch2=110.)
+def main():
+    #Reading CSV Files to Data Frames
+    df02 = pd.read_csv('output/run02.csv')
+    df02a = pd.read_csv('output/run02a.csv')
+    df02b = pd.read_csv('output/run02b.csv')
+    df02c = pd.read_csv('output/run02c.csv')
+
+    df = pd.concat([df02, df02a, df02b, df02c], ignore_index=True) #Concatenates all Data Frames
+    df.drop(df.columns[[0]], inplace=True, axis=1) #Deleting first column which is meaningless info
+    df.drop_duplicates(subset=['Mn1','Mn2','Mch1','Mch2'],inplace=True) #Deleting duplicated entries
+
+    print(df.corr())
+
+    df.plot(x='FreqPeakSW',y='AmpPeakSW', kind='scatter', xlabel='$f$ [Hz]', ylabel=r'$h^2 \Omega_\mathrm{GW}$')
+    plt.grid()
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.show()
+
+    df.plot(x='Mn1',y='AmpPeakSW', kind='scatter', xlabel=r'$m_\mathrm{H1}$ [GeV]', ylabel=r'$h^2 \Omega_\mathrm{GW}$')
+    plt.grid()
+    plt.yscale("log")
+    plt.show()
+
+    print(df['Mn1'][0])
+
+
+    m = A4_vev1(Mn1=df['Mn1'][0],Mn2=df['Mn2'][0],Mch1=df['Mch1'][0],Mch2=df['Mch2'][0])
     #m.findAllTransitions()
     #m.prettyPrintTnTrans()
     #gw = gw_spectrum(m, 0, turb_on=True)
     #print(gw.info)
-    #plot2d(m,(-300,300,-300,300),T=[0,30,60,90,120,150],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.01)
     T = np.linspace(0.,140.,15)
-    print(T)
+    #print(T)
+    plot2d(m,(-300,300,-300,300),T=T,n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.01, filled=True)
     #plot2d(m,(-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1,-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1),T=T,n=200, xaxis=[0,1,3], yaxis=[2,4])
     #plot2d(m,(-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1,-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1),T=T,n=200, xaxis=[0,1,3], yaxis=[2,-4])
     #plot1d(m,m.TnTrans[0]['high_vev'],m.TnTrans[0]['low_vev'],T=T)
 
-    plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0])
+    plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[df['TempNuc'][0],df['TempCrit'][0]])
     #plot1d(m,[0,0,0,0,0],[0,0,246.22/np.sqrt(3),0,246.22/np.sqrt(3)],T=T)
     #plot1d(m,[0,0,0,0,0],[0,0,246.22/np.sqrt(3),0,-246.22/np.sqrt(3)],T=T)
     #plot1d(m,[0,0,246.22/np.sqrt(3),0,246.22/np.sqrt(3)],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     #plot1d(m,[0,0,246.22/np.sqrt(3),0,-246.22/np.sqrt(3)],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     #plot1d(m,[0,246.22/np.sqrt(3),0,246./np.sqrt(3),0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     
-    plot1dtht(m,0,np.pi/2,140.755284,caxs=[1,3],saxs=[2,4],T=T)
+    #plot1dtht(m,0,np.pi/2,140.755284,caxs=[1,3],saxs=[2,4],T=T)
     #plot1dtht(m,0,np.pi/2,20.,caxs=[0,1,3],saxs=[2,4],T=T)
 
     #plot1d(A4_vev1(Mn1=413.,Mn2=312.,Mch1=111,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[83.315])
