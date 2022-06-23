@@ -104,7 +104,7 @@ class A4_vev1(generic_potential.generic_potential):
 
 
     def forbidPhaseCrit(self, X):
-        return (np.array([X])[...,0] < -1E-3).any()
+        return (np.array([X])[...,0] < -5).any()
         
     def V0(self, X):
 

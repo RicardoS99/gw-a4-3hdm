@@ -8,6 +8,7 @@ from cosmoTransitions import pathDeformation as pd
 import numpy as np
 
 import pandas as pd
+from matplotlib import colors
 import matplotlib.pyplot as plt
 
 def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50, clevs=200, cfrac=.8, filled=False, **contourParams):
@@ -36,6 +37,7 @@ def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50,
     contourParams :
         Any extra parameters to be passed to :func:`plt.contour`.
     """
+
     xmin,xmax,ymin,ymax = box
     X = np.linspace(xmin, xmax, n).reshape(n,1)*np.ones((1,n))
     Y = np.linspace(ymin, ymax, n).reshape(1,n)*np.ones((n,1))
@@ -51,7 +53,7 @@ def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50,
     ncols = int(np.ceil(len(T)/nlines))
     #rest = int(np.mod(len(T),nlines))
     rest = int(nlines*ncols-len(T))
-    fig, axs = plt.subplots(nlines, ncols, squeeze=False)
+    fig, axs = plt.subplots(nlines, ncols, squeeze=False, sharex='all', sharey='all')
     k=0
 
     for i in range(nlines):
@@ -61,7 +63,8 @@ def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50,
             minZ, maxZ = min(Z.ravel()), max(Z.ravel())
             N = np.linspace(minZ, minZ+(maxZ-minZ)*cfrac, clevs)
             axs[i,j].contourf(X,Y,Z, N, **contourParams) if filled else axs[i,j].contour(X,Y,Z, N, **contourParams)
-            axs[i,j].set_title("T = " + str(T[k]) + " GeV")
+            axs[i,j].set_title('T = {:.1f} [GeV]'.format(T[k]))
+            axs[i,j].set_aspect(1)
             k+=1
       else:
         for j in range(ncols-rest):
@@ -69,12 +72,12 @@ def plot2d(m, box, T=[0], treelevel=False, offset=0, xaxis=[0], yaxis=[1], n=50,
             minZ, maxZ = min(Z.ravel()), max(Z.ravel())
             N = np.linspace(minZ, minZ+(maxZ-minZ)*cfrac, clevs)
             axs[i,j].contourf(X,Y,Z, N, **contourParams) if filled else axs[i,j].contour(X,Y,Z, N, **contourParams)
-            axs[i,j].set_title("T = " + str(T[k]) + " GeV")
+            axs[i,j].set_title('T = {:.1f} [GeV]'.format(T[k]))
+            axs[i,j].set_aspect(1)
             k+=1
 
-    plt.show()
-
 def plot1d(m, x1, x2, T=[0], treelevel=False, subtract=True, n=500, **plotParams):
+    plt.figure()
     if m.Ndim == 1:
         x = np.linspace(x1,x2,n)
         X = x[:,np.newaxis]
@@ -83,22 +86,19 @@ def plot1d(m, x1, x2, T=[0], treelevel=False, subtract=True, n=500, **plotParams
         X = dX*np.linspace(0,1,n)[:,np.newaxis] + x1
         x = np.linspace(0,1,n)*np.sum(dX**2)**.5
 
-    print(X)
-
-
     for t in T:
         if treelevel:
             y = m.V0(X) - m.V0(X*0) if subtract else m.V0(X)
         else:
             y = m.DVtot(X,t) if subtract else m.Vtot(X, t)
-        plt.plot(x,y, **plotParams, label = str(t))
-    plt.xlabel(R"$\phi$")
+        plt.plot(x,y, **plotParams, label = 'T = {:.1f} [GeV]'.format(t))
+    plt.xlabel(R"$|\phi|$")
     plt.ylabel(R"$V(\phi)$")
     plt.legend()
     plt.axhline(y=0)
-    plt.show()
 
 def plot1dtht(m, tmin, tmax, vabs, caxs=[0], saxs=[1], T=[0], treelevel=False, subtract=True, n=500, **plotParams):
+    plt.figure()
     X = np.zeros((n,m.Ndim))
     tht = np.linspace(tmin,tmax,n)
 
@@ -116,13 +116,11 @@ def plot1dtht(m, tmin, tmax, vabs, caxs=[0], saxs=[1], T=[0], treelevel=False, s
             y = m.V0(X) - m.V0(X*0) if subtract else m.V0(X)
         else:
             y = m.DVtot(X,t) if subtract else m.Vtot(X, t)
-        plt.plot(tht,y, **plotParams, label = str(t))
+        plt.plot(tht,y, **plotParams, label = 'T = {:.1f} [GeV]'.format(t))
     plt.xlabel(R"$\phi$")
     plt.ylabel(R"$V(\phi)$")
     plt.legend()
     plt.axhline(y=0)
-    plt.show()
-
     
 
 def plotActionT(m, trans, Tmin=0.001, Tmax=500., n=50):
@@ -168,47 +166,92 @@ def main():
     df02a = pd.read_csv('output/run02a.csv')
     df02b = pd.read_csv('output/run02b.csv')
     df02c = pd.read_csv('output/run02c.csv')
+    df02d = pd.read_csv('output/run02d.csv')
+    df02d = pd.read_csv('output/run02d.csv')
+    df03b = pd.read_csv('output/run03b.csv')
 
-    df = pd.concat([df02, df02a, df02b, df02c], ignore_index=True) #Concatenates all Data Frames
+    df = pd.concat([df02, df02a, df02b, df02c, df02d, df03b], ignore_index=True) #Concatenates all Data Frames
     df.drop(df.columns[[0]], inplace=True, axis=1) #Deleting first column which is meaningless info
     df.drop_duplicates(subset=['Mn1','Mn2','Mch1','Mch2'],inplace=True) #Deleting duplicated entries
+    df.sort_values(by='AmpPeakSW')
+
+    df['MnSum'] = df['Mn1'] + df['Mn2']
+    df['MnDif'] = df['Mn1'] - df['Mn2']
+    df['MchSum'] = df['Mch1'] + df['Mch2']
+    df['MchDif'] = df['Mch1'] - df['Mch2']
+    df['MSum'] = df['MnSum'] + df['MchSum']
 
     print(df.corr())
 
-    df.plot(x='FreqPeakSW',y='AmpPeakSW', kind='scatter', xlabel='$f$ [Hz]', ylabel=r'$h^2 \Omega_\mathrm{GW}$')
-    plt.grid()
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.show()
+    plt.ioff()
 
-    df.plot(x='Mn1',y='AmpPeakSW', kind='scatter', xlabel=r'$m_\mathrm{H1}$ [GeV]', ylabel=r'$h^2 \Omega_\mathrm{GW}$')
-    plt.grid()
-    plt.yscale("log")
-    plt.show()
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='MnSum', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$m_{\mathrm{H}_1} + m_{\mathrm{H}_2}$ [GeV]')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
 
-    print(df['Mn1'][0])
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='MnDif', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$m_{\mathrm{H}_1} - m_{\mathrm{H}_2}$ [GeV]')
+    plt.savefig('plots/peakmndif.eps')
+    #plt.show()
 
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='MchSum', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$m_{\mathrm{H}^+} + m_{\mathrm{H}^-}$ [GeV]')
+    plt.savefig('plots/peakmchsum.eps')
+    #plt.show()
 
-    m = A4_vev1(Mn1=df['Mn1'][0],Mn2=df['Mn2'][0],Mch1=df['Mch1'][0],Mch2=df['Mch2'][0])
-    #m.findAllTransitions()
-    #m.prettyPrintTnTrans()
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='MchDif', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$m_{\mathrm{H}^+} - m_{\mathrm{H}^-}$ [GeV]')
+    plt.savefig('plots/peakmchdif.eps')
+    #plt.show()
+
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='MSum', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$m_{\mathrm{H}_1} + m_{\mathrm{H}_2} + m_{\mathrm{H}^+} + m_{\mathrm{H}^-}$ [GeV]')
+    plt.savefig('plots/peakmsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='alpha', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\alpha$')
+    plt.savefig('plots/peakalpha.eps')
+    #plt.show()
+
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='VEVdif/T', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakvevdif.eps')
+    #plt.show()
+
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='beta', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\beta/H$')
+    plt.savefig('plots/peakbeta.eps')
+    #plt.show()
+
+    m = A4_vev1(Mn1=df['Mn1'][10],Mn2=df['Mn2'][10],Mch1=df['Mch1'][10],Mch2=df['Mch2'][10])
+    m.findAllTransitions()
+    m.prettyPrintTnTrans()
     #gw = gw_spectrum(m, 0, turb_on=True)
     #print(gw.info)
     T = np.linspace(0.,140.,15)
     #print(T)
-    plot2d(m,(-300,300,-300,300),T=T,n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.01, filled=True)
+    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][10],df['TempCrit'][10],100],n=200, xaxis=[0,1], yaxis=[3], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx01y3.eps')
+    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][10],df['TempCrit'][10],100],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx013y24.eps')
+    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][10],df['TempCrit'][10],100],n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx1y2.eps')
     #plot2d(m,(-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1,-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1),T=T,n=200, xaxis=[0,1,3], yaxis=[2,4])
     #plot2d(m,(-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1,-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1),T=T,n=200, xaxis=[0,1,3], yaxis=[2,-4])
     #plot1d(m,m.TnTrans[0]['high_vev'],m.TnTrans[0]['low_vev'],T=T)
 
-    plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[df['TempNuc'][0],df['TempCrit'][0]])
+    #plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
+    plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0,df['TempNuc'][10],df['TempCrit'][10],100])
+    plt.savefig('plots/vplot1dradreal.eps')
     #plot1d(m,[0,0,0,0,0],[0,0,246.22/np.sqrt(3),0,246.22/np.sqrt(3)],T=T)
     #plot1d(m,[0,0,0,0,0],[0,0,246.22/np.sqrt(3),0,-246.22/np.sqrt(3)],T=T)
     #plot1d(m,[0,0,246.22/np.sqrt(3),0,246.22/np.sqrt(3)],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     #plot1d(m,[0,0,246.22/np.sqrt(3),0,-246.22/np.sqrt(3)],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     #plot1d(m,[0,246.22/np.sqrt(3),0,246./np.sqrt(3),0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     
-    #plot1dtht(m,0,np.pi/2,140.755284,caxs=[1,3],saxs=[2,4],T=T)
+    plot1dtht(m,0,np.pi/2,m.TnTrans[0]['low_vev'][0],caxs=[1,3],saxs=[2,4],T=[0,df['TempNuc'][10],df['TempCrit'][10],100])
     #plot1dtht(m,0,np.pi/2,20.,caxs=[0,1,3],saxs=[2,4],T=T)
 
     #plot1d(A4_vev1(Mn1=413.,Mn2=312.,Mch1=111,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[83.315])
@@ -216,7 +259,8 @@ def main():
     #plot1d(A4_vev1(Mn1=413.,Mn2=212.,Mch1=211,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[88.881])
     #plot1d(A4_vev1(Mn1=313.,Mn2=112.,Mch1=311,Mch2=310.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[92.736])
     #plot1d(A4_vev1(Mn1=413.,Mn2=12.,Mch1=311,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[51.16])
-    #plt.show()
+
+    plt.show()
     
 if __name__ == "__main__":
   main()
