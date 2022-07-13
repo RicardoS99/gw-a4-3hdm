@@ -1,4 +1,5 @@
 from A4_model import A4_vev1
+from A4_full import A4full_vev1
 from gw_spectrum import gw_spectrum
 
 from cosmoTransitions import generic_potential
@@ -95,7 +96,7 @@ def plot1d(m, x1, x2, T=[0], treelevel=False, subtract=True, n=500, **plotParams
     plt.xlabel(R"$|\phi|$")
     plt.ylabel(R"$V(\phi)$")
     plt.legend()
-    plt.axhline(y=0)
+    plt.axhline(y=0, color="grey", linestyle="--")
 
 def plot1dtht(m, tmin, tmax, vabs, caxs=[0], saxs=[1], T=[0], treelevel=False, subtract=True, n=500, **plotParams):
     plt.figure()
@@ -117,10 +118,10 @@ def plot1dtht(m, tmin, tmax, vabs, caxs=[0], saxs=[1], T=[0], treelevel=False, s
         else:
             y = m.DVtot(X,t) if subtract else m.Vtot(X, t)
         plt.plot(tht,y, **plotParams, label = 'T = {:.1f} [GeV]'.format(t))
-    plt.xlabel(R"$\phi$")
+    plt.xlabel(R"$\theta$")
     plt.ylabel(R"$V(\phi)$")
     plt.legend()
-    plt.axhline(y=0)
+    plt.axhline(y=0, color="grey", linestyle="--")
     
 
 def plotActionT(m, trans, Tmin=0.001, Tmax=500., n=50):
@@ -161,6 +162,7 @@ def plotActionT(m, trans, Tmin=0.001, Tmax=500., n=50):
     return T_vec, S_vec
 
 def main():
+    """
     #Reading CSV Files to Data Frames
     df02 = pd.read_csv('output/run02.csv')
     df02a = pd.read_csv('output/run02a.csv')
@@ -225,25 +227,26 @@ def main():
     plt.savefig('plots/peakbeta.eps')
     #plt.show()
 
-    m = A4_vev1(Mn1=df['Mn1'][10],Mn2=df['Mn2'][10],Mch1=df['Mch1'][10],Mch2=df['Mch2'][10])
-    m.findAllTransitions()
-    m.prettyPrintTnTrans()
+    m = A4_vev1(Mn1=df['Mn1'][0],Mn2=df['Mn2'][0],Mch1=df['Mch1'][0],Mch2=df['Mch2'][0])
+    #m.findAllTransitions()
+    #m.prettyPrintTnTrans()
     #gw = gw_spectrum(m, 0, turb_on=True)
+    
     #print(gw.info)
     T = np.linspace(0.,140.,15)
     #print(T)
-    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][10],df['TempCrit'][10],100],n=200, xaxis=[0,1], yaxis=[3], clevs=100,cfrac=0.8, filled=False)
+    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][0],df['TempCrit'][0],100],n=200, xaxis=[0,1], yaxis=[3], clevs=100,cfrac=0.8, filled=False)
     plt.savefig('plots/vplot2dx01y3.eps')
-    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][10],df['TempCrit'][10],100],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.8, filled=False)
+    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][0],df['TempCrit'][0],100],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.8, filled=False)
     plt.savefig('plots/vplot2dx013y24.eps')
-    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][10],df['TempCrit'][10],100],n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.8, filled=False)
+    plot2d(m,(-150,150,-150,150),T=[0,df['TempNuc'][0],df['TempCrit'][0],100],n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.8, filled=False)
     plt.savefig('plots/vplot2dx1y2.eps')
     #plot2d(m,(-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1,-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1),T=T,n=200, xaxis=[0,1,3], yaxis=[2,4])
     #plot2d(m,(-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1,-246.22/np.sqrt(3)*1.1,246.22/np.sqrt(3)*1.1),T=T,n=200, xaxis=[0,1,3], yaxis=[2,-4])
     #plot1d(m,m.TnTrans[0]['high_vev'],m.TnTrans[0]['low_vev'],T=T)
 
     #plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
-    plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0,df['TempNuc'][10],df['TempCrit'][10],100])
+    plot1d(m,[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0,df['TempNuc'][0],df['TempCrit'][0],100])
     plt.savefig('plots/vplot1dradreal.eps')
     #plot1d(m,[0,0,0,0,0],[0,0,246.22/np.sqrt(3),0,246.22/np.sqrt(3)],T=T)
     #plot1d(m,[0,0,0,0,0],[0,0,246.22/np.sqrt(3),0,-246.22/np.sqrt(3)],T=T)
@@ -251,7 +254,8 @@ def main():
     #plot1d(m,[0,0,246.22/np.sqrt(3),0,-246.22/np.sqrt(3)],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     #plot1d(m,[0,246.22/np.sqrt(3),0,246./np.sqrt(3),0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=T)
     
-    plot1dtht(m,0,np.pi/2,m.TnTrans[0]['low_vev'][0],caxs=[1,3],saxs=[2,4],T=[0,df['TempNuc'][10],df['TempCrit'][10],100])
+    plot1dtht(m,0,2*np.pi,139.007485,caxs=[1,3],saxs=[2,4],T=[0,df['TempNuc'][0],df['TempCrit'][0],100])
+    plt.savefig('plots/vplotarg.eps')
     #plot1dtht(m,0,np.pi/2,20.,caxs=[0,1,3],saxs=[2,4],T=T)
 
     #plot1d(A4_vev1(Mn1=413.,Mn2=312.,Mch1=111,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[83.315])
@@ -259,6 +263,63 @@ def main():
     #plot1d(A4_vev1(Mn1=413.,Mn2=212.,Mch1=211,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[88.881])
     #plot1d(A4_vev1(Mn1=313.,Mn2=112.,Mch1=311,Mch2=310.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[92.736])
     #plot1d(A4_vev1(Mn1=413.,Mn2=12.,Mch1=311,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[51.16])
+
+    plt.show()
+    """
+
+    m = A4_vev1(Mn1=265.95,Mn2=174.10,Mch1=197.64,Mch2=146.84, verbose = 1)
+    m.tree_lvl_conditions()
+    #m.findAllTransitions()
+    #m.prettyPrintTnTrans()
+    #mtl = A4_vev1(Mn1=f*410.,Mn2=f*390.,Mch1=f*160.,Mch2=f*140., counterterms = False)
+    #plot1d(mtl,[0,0,0,0,0],[300./np.sqrt(3),300./np.sqrt(3),0,300./np.sqrt(3),0],T=[0], treelevel=True)
+    #plot1d(mtl,[0,0,0,0,0,0,0,0,0,0,0,0],[0.,300.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.],T=np.linspace(0.,120.,4), treelevel=True)
+    #plot1d(mtl,[0,0,0,0,0,0],[0.,300.,0.,0.,0.,0.],T=np.linspace(0.,120.,4), treelevel=True)
+    #plt.axvline(x=246.22, color="grey", linestyle="--")
+    #plot1d(m,[0,0,0,0,0],[300./np.sqrt(3),300./np.sqrt(3),0,300./np.sqrt(3),0],T=np.linspace(0.,120.,4))
+    #plot1d(m,[0,0,0,0,0,0,0,0,0,0,0,0],[0.,300.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.],T=np.linspace(0.,120.,4))
+    #plot1d(m,[0,0,0,0,0,0,0,0,0,0,0,0],[300./np.sqrt(3),0,300./np.sqrt(3),0,300./np.sqrt(3),0,0,0,0,0,0,0],T=[0])
+    plot1d(m,[0,0,0,0,0,0],[0.,300.,0.,0.,0.,0.],T=np.linspace(0.,120.,4))
+    plt.axvline(x=246.22, color="grey", linestyle="--")
+    plot1d(m,[0,0,0,0,0,0],[300.,0.,0.,0.,0.,0.],T=np.linspace(0.,120.,4))
+    plt.axvline(x=246.22, color="grey", linestyle="--")
+    plot1d(m,[246.22,0.,0.,0.,0.,0.],[0.,246.22,0.,0.,0.,0.],T=np.linspace(0.,120.,4))
+    plt.axvline(x=246.22, color="grey", linestyle="--")
+    #plot1d(m,[0,0,0,0,0],[300./np.sqrt(3),0,0,0,0],T=np.linspace(0.,140.,8))
+    #plt.axvline(x=246.22, color="grey", linestyle="--")
+    #plot1d(m,[0,0,0,0,0],[300./np.sqrt(3),300./np.sqrt(3)*np.cos(np.pi/3),300./np.sqrt(3)*np.sin(np.pi/3),300./np.sqrt(3)*np.cos(-np.pi/3),300./np.sqrt(3)*np.sin(-np.pi/3)],T=np.linspace(0.,140.,8))
+    #plt.axvline(x=246.22, color="grey", linestyle="--")
+
+    #print(np.sqrt(np.linalg.eigvals(mtl.massSqMatrix(X=[246.22/np.sqrt(3),246.22/np.sqrt(3),0.,246.22/np.sqrt(3),0.]))))
+    #print(np.sqrt(np.linalg.eigvals(m.d2V(X=[246.22/np.sqrt(3),246.22/np.sqrt(3),0.,246.22/np.sqrt(3),0.],T=0))))
+    #M, g1, g2 = m.boson_massSq(X=[246.22/np.sqrt(3),246.22/np.sqrt(3),0.,246.22/np.sqrt(3),0.],T=0)
+    #print(np.sqrt(M))
+    #print(np.sqrt(np.linalg.eigvals(m.d2V(X=[246.22/np.sqrt(3),246.22/np.sqrt(3),0.,246.22/np.sqrt(3),0.],T=200))))
+    #M, g1, g2 = m.boson_massSq(X=[246.22/np.sqrt(3),246.22/np.sqrt(3),0.,246.22/np.sqrt(3),0.],T=200)
+    #print(np.sqrt(M))
+    
+    #msm = mtl.massSqMatrix(X=[0.,246.22,0.,0.,0.,0.])
+    msm2 = m.d2V(X=[0.,246.22,0.,0.,0.,0.],T=0)
+    msm2[np.abs(msm2) < 1] = 0
+    for i in range(6):
+        print("{0:2d}th scalar mass: {1:8.2f}".format(i,np.sqrt(msm2[i][i])))
+
+    #msm = np.linalg.eigvals(mtl.massSqMatrix(X=[0,246.22,246.22/np.sqrt(3),0.,0,0.,0.,0.,0.,0.,0.,0.]))
+    #msm2 = np.linalg.eigvals(m.d2V(X=[0,246.22,246.22/np.sqrt(3),0.,0,0.,0.,0.,0.,0.,0.,0.],T=0))
+    #print(msm2-msm)
+    #msm[np.abs(msm) < 7] = 0
+    #print(np.sqrt(msm))
+    
+    msm, g1, g2 = m.boson_massSq(X=[0.,246.22,0.,0.,0.,0.],T=0)
+    msm[np.abs(msm) < 1] = 0
+    for i in range(len(msm)):
+        print("{0:2d}th boson: {1:8.2f}".format(i,np.sqrt(msm[i])))
+
+    msm, g1 = m.fermion_massSq(X=[0.,246.22,0.,0.,0.,0.])
+    for i in range(len(msm)):
+        print("{0:2d}th fermion: {1:11.6f}".format(i,np.sqrt(msm[i])))
+
+    
 
     plt.show()
     

@@ -28,33 +28,34 @@ def findTrans(pars):
     inMch2 = pars[3]
 
     m = A4_vev1(Mn1=inMn1,Mn2=inMn2,Mch1=inMch1,Mch2=inMch2)
-
+    print('Tree Level Cond: ',m.tree_lvl_conditions() )
+    print('Unitary Cond: ',m.unitary() )
     n_trans = 0
-   
-    try:
-        m.findAllTransitions()
-        n_phases = len(m.phases)
-        n_trans = len(m.TnTrans)
-        model_info = {
-            "Mn1": inMn1,
-            "Mn2": inMn2,
-            "Mch1": inMch1,
-            "Mch2": inMch2,
-            "L1": m.L1,
-            "L2": m.L2,
-            "L3": m.L3,
-            "L4": m.L4,
-            "NPhases": n_phases,
-            "NTrans": n_trans
-        }
-        if(len(m.TnTrans)>0):
-            for ind in range(0,len(m.TnTrans)):
-                if(m.TnTrans[0]['trantype']==1): 
-                    gw = gw_spectrum(m, ind, turb_on=True)
-                    if(10 < gw.beta < 100000):
-                        output.append(model_info | gw.info)
-    except:
-        pass
+    if(m.tree_lvl_conditions() and m.unitary()):
+        try:
+            m.findAllTransitions()
+            n_phases = len(m.phases)
+            n_trans = len(m.TnTrans)
+            model_info = {
+                "Mn1": inMn1,
+                "Mn2": inMn2,
+                "Mch1": inMch1,
+                "Mch2": inMch2,
+                "L1": m.L1,
+                "L2": m.L2,
+                "L3": m.L3,
+                "L4": m.L4,
+                "NPhases": n_phases,
+                "NTrans": n_trans
+            }
+            if(len(m.TnTrans)>0):
+                for ind in range(0,len(m.TnTrans)):
+                    if(m.TnTrans[0]['trantype']==1): 
+                        gw = gw_spectrum(m, ind, turb_on=True)
+                        if(10 < gw.beta < 100000):
+                            output.append(model_info | gw.info)
+        except:
+            pass
                 
     return output
 
@@ -83,7 +84,7 @@ def createPars(box, n, isMasses=True): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isM
 
     print('Raw parameters list: ', pars.shape)
     pars = np.unique(pars, axis=0)
-    ind_to_remove = np.where((pars[...,0] - pars[...,1]) < 0)
+    ind_to_remove = np.where(np.abs(pars[...,2] - pars[...,3]) < 1)
     pars = np.delete(pars, ind_to_remove, 0)
         
     print('Unique parameters list shape before removing invalid masses: ', pars.shape)
@@ -105,10 +106,10 @@ def main():
 
             box = [[float(input[1]),float(input[2]),float(input[3]),float(input[4])],[float(input[5]),float(input[6]),float(input[7]),float(input[8])]]
             divs = [int(input[9]),int(input[10]),int(input[11]),int(input[12])]
-            massFlag = True if input[13]=='True' else False
+            massFlag = input[13]
             
             pars_list = createPars(box,divs, isMasses=massFlag)
-            print(pars_list)
+            #print(pars_list)
             #print(np.where((6.*(pars_list[...,0]**2 - pars_list[...,1]**2))**2 - 12*(2.*np.sqrt(3)*(pars_list[...,2]**2 - pars_list[...,3]**2))**2 <= 0. ))
             
             sys.stdout = open(os.devnull, 'w')
