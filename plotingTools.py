@@ -283,7 +283,7 @@ def main():
     mg.prettyPrintTnTrans()
 
     mg.plotPhasesPhi()
-    plt.show()
+    plt.savefig('phases.png')
     
     print(mg.phases)
     
