@@ -7,8 +7,8 @@ from cosmoTransitions import pathDeformation as pd
 import numpy as np
 
 
-class A4_gauge_vev1(generic_potential.generic_potential):
-    def init(self,Mn1=265.95,Mn2=174.10,Mch1=197.64,Mch2=146.84,Mh=125.10,mZ = 91.1876,mW = 80.379,mtop = 172.76,mbot = 4.18,mtau = 1.77686, mcharm = 1.27, mstrange = 0.093, mmuon = 0.1056583745, mup = 0.00216, mdown = 0.00467, melectron = 0.0005109989461, vh = 246.22, counterterms = True, verbose = 1 , M0 = np.inf, L0 = np.inf, L1 = np.inf, L2 = np.inf, L3 = np.inf, L4 = np.inf):
+class A4_reduced_vev1(generic_potential.generic_potential):
+    def init(self,Mn1=265.95,Mn2=174.10,Mch1=197.64,Mch2=146.84,Mh=125.10,mZ = 91.1876,mW = 80.379,mtop = 172.76,mbot = 4.18,mtau = 1.77686, mcharm = 1.27, mstrange = 0.093, mmuon = 0.1056583745, mup = 0.00216, mdown = 0.00467, melectron = 0.0005109989461, vh = 246.22, M0 = np.inf, L0 = np.inf, L1 = np.inf, L2 = np.inf, L3 = np.inf, L4 = np.inf, dM0 = 0., dL0 = 0., dL1 = 0., dL2 = 0., dL3 = 0., dL4 = 0., counterterms = True, verbose = 1, x_eps = 1e-3, T_eps = 1e-3, deriv_order = 4):
         # SU(2)_L and U(1)_Y couplings
         self.mW = mW
         self.mZ = mZ
@@ -17,13 +17,19 @@ class A4_gauge_vev1(generic_potential.generic_potential):
         self.gl = 2*self.mW/self.vh
         self.gy = 2*np.sqrt(self.mZ**2 - self.mW**2)/self.vh
         
-        self.Ndim = 6 # Number of dynamic classical fields. 1 real field + 2 complex fields -> 5 real fields 
+        self.Ndim = 5 # Number of dynamic classical fields. 1 real field + 2 complex fields -> 5 real fields 
         self.renormScaleSq = float(self.vh**2) # Renormalisation scale
         self.Tmax = 250.
-        self.x_eps = 1e-3
-        self.T_eps = 1e-4
-        self.deriv_order = 4
-
+        self.x_eps = x_eps
+        self.T_eps = T_eps
+        self.deriv_order = deriv_order
+        self.dM0 = 0
+        self.dL0 = 0
+        self.dL1 = 0
+        self.dL2 = 0
+        self.dL3 = 0
+        self.dL4 = 0
+        
         if M0 == np.inf or L0 == np.inf or L1 == np.inf or L2 == np.inf or L3 == np.inf or L4 == np.inf:
             if ((6.*(float(Mn1)**2 - float(Mn2)**2)/(self.vh**2))**2 - 12*(2.*np.sqrt(3)*(float(Mch1)**2 - float(Mch2)**2)/(self.vh**2))**2 >0. ): #Check if masses are allowed
                 self.Mn1 = float(Mn1)
@@ -49,6 +55,11 @@ class A4_gauge_vev1(generic_potential.generic_potential):
             self.L3 = L3
             self.L4 = L4
 
+            if self.tree_lvl_conditions():
+                self.Mn1 = np.sqrt(self.vh**2/12. * (-5*self.L1 + 3*self.L2 + 2*self.L3 + np.sqrt((-self.L1 + 3*self.L2 - 2*self.L3)**2 + 12 * self.L4**2)))
+                self.Mn2 = np.sqrt(self.vh**2/12. * (-5*self.L1 + 3*self.L2 + 2*self.L3 - np.sqrt((-self.L1 + 3*self.L2 - 2*self.L3)**2 + 12 * self.L4**2)))
+                self.Mch1 = np.sqrt(self.vh**2 * (-self.L1/2. + self.L4 / (4*np.sqrt(3))))
+                self.Mch2 = np.sqrt(self.vh**2 * (-self.L1/2. - self.L4 / (4*np.sqrt(3))))
 
         sf = np.sqrt(12)*self.L4
         cf = self.L1-3*self.L2+2*self.L3
@@ -56,15 +67,6 @@ class A4_gauge_vev1(generic_potential.generic_potential):
         self.sina = sf / f
         self.cosa = cf / f
 
-        sqcm = np.sqrt(1-self.cosa)
-        sqcp = np.sqrt(1+self.cosa)
-
-        self.dM0 = 0
-        self.dL0 = 0
-        self.dL1 = 0
-        self.dL2 = 0
-        self.dL3 = 0
-        self.dL4 = 0
         
         # Yukawa Couplings
         self.yt   = np.sqrt(2)*mtop/self.vh
@@ -81,87 +83,30 @@ class A4_gauge_vev1(generic_potential.generic_potential):
         self.cT = (14./3.*self.L0 + self.L1 + self.L2 + 2./3.*self.L3 + 3./2.*self.gl**2 + 3./4.*(self.gl**2 + self.gy**2) + 3.*(self.yt**2 + self.yb**2 + self.yc**2 + self.ys**2 + self.yu**2 + self.yd**2) + (self.ytau**2 + self.ymuon**2 + self.ye**2))/24.
 
         # Counterterms: Apply the renormalization conditions both to fix the minimum of the potential and the masses (first and second derivatives)
-        tl_vevs = np.array([self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.]) # Set VEVs at T=0
-        gradT0 = self.gradV(tl_vevs,0.) # Take the first derivatives of the potential at the minimum
-        Hess = self.d2V(tl_vevs,0.) # Use built-in d2V function to extrac the second derivative of the T=0 potential (tree + CW)        
-        Hess_tree = self.massSqMatrix(tl_vevs) # Use analytical form of mass matrix in the gauge eigenbasis in the minimum
-        d2V_CW = Hess - Hess_tree # Extrac the second derivative of the CW potential by removing the tree-level part from the full tree+CW T=0 bit 
-
-        U = np.array([[0,1/np.sqrt(3),sqcm/2.,-sqcm/(2.*np.sqrt(3)),-sqcp/2.,-sqcp/(2.*np.sqrt(3))], \
-            [1/np.sqrt(3),0,-sqcp/(2.*np.sqrt(3)),-sqcp/2.,-sqcm/(2.*np.sqrt(3)),sqcm/2.], \
-            [0,1/np.sqrt(3),-sqcm/2.,-sqcm/(2.*np.sqrt(3)),sqcp/2.,-sqcp/(2.*np.sqrt(3))], \
-            [1/np.sqrt(3),0,-sqcp/(2.*np.sqrt(3)),sqcp/2.,-sqcm/(2.*np.sqrt(3)),-sqcm/2.], \
-            [0,1/np.sqrt(3),0,sqcm/np.sqrt(3),0,sqcp/np.sqrt(3)], \
-            [1/np.sqrt(3),0,sqcp/np.sqrt(3),0,sqcm/np.sqrt(3),0]])
-
-        #print([gradT0])
-        d1V = np.dot(np.transpose(U),np.transpose(np.asanyarray([gradT0])))
-        d2V = np.dot(np.dot(np.transpose(U),d2V_CW),U)
-        d1 = -d1V[1,0]
-        d2 = -d2V[1,1]
-        d3 = -(d2V[2,2] + d2V[3,3])/2.
-        d4 = -(d2V[4,4] + d2V[5,5])/2.
-        d5 = -(d2V[2,4] + d2V[4,2] - d2V[5,3] - d2V[3,5])/4.
+        tl_vevs = np.array([self.vh/np.sqrt(3), self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.]) # Set VEVs at T=0
 
         if counterterms is True:
-            if verbose > 1 :
-                print('d2V_CW[0,0]: ', d2V[0,0])
-                print('d2V_CW[1,1]: ', d2V[1,1])
-                print('d2V_CW[2,2]: ', d2V[2,2])
-                print('d2V_CW[3,3]: ', d2V[3,3])
-                print('d2V_CW[4,4]: ', d2V[4,4])
-                print('d2V_CW[5,5]: ', d2V[5,5])
-
-                print('d2V_CW[2,4]: ', d2V[2,4])
-                print('d2V_CW[4,2]: ', d2V[4,2])
-                print('d2V_CW[5,3]: ', d2V[5,3])
-                print('d2V_CW[3,5]: ', d2V[3,5])
-
-                print('d1: ', d1)
-                print('d2: ', d2)
-                print('d3: ', d3)
-                print('d4: ', d4)
-                print('d5: ', d5)
-
-                print('1st derivatives', self.gradV(tl_vevs,0.))
-            self.dM0 = -(3*np.sqrt(3)*d1 - np.sqrt(3)*d2*self.vh)/(2.*self.vh)
-            self.dL1 = (3*(-d1 + d2*self.vh))/(2.*self.vh**3)
-            self.dL2 = -(7*d1 - 3*d2*self.vh - 2*d3*self.vh - 2*d4*self.vh - 2*d3*self.cosa*self.vh + 2*d4*self.cosa*self.vh - 4*d5*self.vh*sqcm*sqcp)/(2.*self.vh**3)
-            self.dL3 = (3*(-3*d1 + d2*self.vh + d3*self.vh + d4*self.vh - d3*self.cosa*self.vh + d4*self.cosa*self.vh - 2*d5*self.vh*sqcm*sqcp))/(2.*self.vh**3)
-            self.dL4 = -((np.sqrt(3)*d3*sqcm - np.sqrt(3)*d4*sqcm + np.sqrt(3)*d3*self.cosa*sqcm - np.sqrt(3)*d4*self.cosa*sqcm - 2*np.sqrt(3)*d5*self.cosa*sqcp)/ (np.sqrt(1 + self.cosa)*self.vh**2))
-        
-            if verbose > 1 :
-                print('1st derivatives', self.gradV(tl_vevs,0.))
-                d2V_ct = self.d2V(tl_vevs,0.) - Hess
-                d2V[np.abs(d2V) < 1] = 0
-                d2V_ct[np.abs(d2V_ct) < 1] = 0
-                dif = d2V_ct + d2V
-                dif[np.abs(dif) < 1] = 0
-                print('2nd derivatives: ',dif)
-                print('Hessian Eigenvalues: ', np.linalg.eigvals(self.d2V(tl_vevs,0.)))
+            self.dM0 = dM0
+            self.dL0 = dL0
+            self.dL1 = dL1
+            self.dL2 = dL2
+            self.dL3 = dL3
+            self.dL4 = dL4
         
         if verbose > 0 :
             # Printing Constants, Counterterms, VEVs at T=0 and Days thermal loop corrections
             print('Couplings:     M0 = {0:8.2f},  L0 = {1:6.3f},  L1 = {2:6.3f},  L2 = {3:6.3f},  L3 = {4:6.3f},  L4 = {5:6.3f}'.format(self.M0,self.L0,self.L1,self.L2,self.L3,self.L4))
             print('Counterterms: dM0 = {0:8.2f}, dL0 = {1:6.3f}, dL1 = {2:6.3f}, dL2 = {3:6.3f}, dL3 = {4:6.3f}, dL4 = {5:6.3f}'.format(self.dM0,self.dL0,self.dL1,self.dL2,self.dL3,self.dL4))
-            print('VEVS:          n0 = {0:8.2f},  n1 = {1:6.2f},  n2 = {2:6.2f},  n3 = {3:6.2f},  n4 = {4:6.2f},  n5 = {5:6.2f}'.format(tl_vevs[0],tl_vevs[1],tl_vevs[2],tl_vevs[3],tl_vevs[4],tl_vevs[5]))
+            print('VEVS:          n0 = {0:8.2f},  n1 = {1:6.2f},  n2 = {2:6.2f},  n3 = {3:6.2f},  n4 = {4:6.2f}'.format(tl_vevs[0],tl_vevs[1],tl_vevs[2],tl_vevs[3],tl_vevs[4]))
             print('Termal Correction: {0:6.2f}'.format(self.cT))
 
 
     def tree_lvl_conditions(self):
         # Here cond=true means that one is in the physical region at tree level
-
-        M0 = self.M0 + self.dM0
-        L0 = self.L0 + self.dL0
-        L1 = self.L1 + self.dL1
-        L2 = self.L2 + self.dL2
-        L3 = self.L3 + self.dL3
-        L4 = self.L4 + self.dL4
-
-        req1 = M0 > 0
-        req2 = L0 + L1 >0
-        req3 = L4**2 < 12*L1**2
-        req4 = L4**2 < 2*(L3 - L1)*(L2 - L1)
+        req1 = self.M0 > 0
+        req2 = self.L0 + self.L1 >0
+        req3 = self.L4**2 < 12*self.L1**2
+        req4 = self.L4**2 < 2*(self.L3 - self.L1)*(self.L2 - self.L1)
         
         cond = req1 and req2 and req3 and req4
 
@@ -169,19 +114,11 @@ class A4_gauge_vev1(generic_potential.generic_potential):
 
     def unitary(self):
         # Here cond=true means that one is in the physical region at tree level
-
-        M0 = self.M0 + self.dM0
-        L0 = self.L0 + self.dL0
-        L1 = self.L1 + self.dL1
-        L2 = self.L2 + self.dL2
-        L3 = self.L3 + self.dL3
-        L4 = self.L4 + self.dL4
-
-        req1 = np.abs(L0) < np.pi/2.
-        req2 = np.abs(L1) < np.pi/2.
-        req3 = np.abs(L2) < np.pi/2.
-        req4 = np.abs(L3) < np.pi/2.
-        req5 = np.abs(L4) < np.pi/2.
+        req1 = np.abs(self.L0) < np.pi/2.
+        req2 = np.abs(self.L1) < np.pi/2.
+        req3 = np.abs(self.L2) < np.pi/2.
+        req4 = np.abs(self.L3) < np.pi/2.
+        req5 = np.abs(self.L4) < np.pi/2.
   
         cond = req1 and req2 and req3 and req4 and req5
 
@@ -189,13 +126,11 @@ class A4_gauge_vev1(generic_potential.generic_potential):
 
     def forbidPhaseCrit(self, X):
         X = np.asanyarray(X)
-        H10, H11, H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4], X[...,5]
+        H10,  H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4]
 
         req1 = (H10 < -5).any()
-        req2 = (H11 < -5).any()
-        req3 = (H11 >  5).any()
 
-        cond = req1 or req2 or req3
+        cond = req1 
 
         return cond
 
@@ -207,7 +142,8 @@ class A4_gauge_vev1(generic_potential.generic_potential):
         # Hi0 and Hi1 correspond to the real and complex parts resp.
         
         X = np.asanyarray(X)
-        H10, H11, H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4], X[...,5]
+        H10, H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4]
+        H11 = np.zeros_like(H10)
 
         b11 = 1/2.*(H10**2 + H11**2)
         b22 = 1/2.*(H20**2 + H21**2)
@@ -244,7 +180,8 @@ class A4_gauge_vev1(generic_potential.generic_potential):
 
     def boson_massSq(self, X, T):
         X = np.asanyarray(X)
-        H10, H11, H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4], X[...,5]
+        H10, H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4]
+        H11 = np.zeros_like(H10)
         
          # Scalar fields in gauge basis: H1, Eta1, Chi1, Chip1, H2, Eta2, Chi2, Chip2, H3, Eta3, Chi3, Chip3
         
@@ -383,7 +320,8 @@ class A4_gauge_vev1(generic_potential.generic_potential):
 
     def fermion_massSq(self, X):
         X = np.asanyarray(X)
-        H10, H11, H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4], X[...,5]
+        H10, H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4]
+        H11 = np.zeros_like(H10)
 
         #Lepton Mass Matrix
         lep_mm = np.array([[1/2.*(self.ye**2 + self.ymuon**2 + self.ytau**2)*(H10**2 + H11**2), \
@@ -458,16 +396,16 @@ class A4_gauge_vev1(generic_potential.generic_potential):
 
     def approxZeroTMin(self):
         # Approximate minimum at T=0. Giving tree-level minimum
-        min0 = np.array([0.,0. ,0., 0., 0., 0.])
-        min1 = np.array([self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.])
+        min0 = np.array([0., 0., 0., 0., 0.])
+        min1 = np.array([self.vh/np.sqrt(3), self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.])
         return [min1]
 
     def approxFiniteTMin(self):
         # Approximate minimum at T=0. Giving tree-level minimum
-        min0 = np.array([0.,0. ,0., 0., 0., 0.])
-        min1 = np.array([self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.])
-        return [[min0,200.0]]
-
+        min0 = np.array([0., 0., 0., 0., 0.])
+        min1 = np.array([self.vh/np.sqrt(3), self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.])
+        return []
+    
     def getPhases(self,tracingArgs={}):
         """
         Find different phases as functions of temperature
@@ -485,6 +423,8 @@ class A4_gauge_vev1(generic_potential.generic_potential):
             identified by a unique key. This value is also stored in
             `self.phases`.
         """
+        if (self.tree_lvl_conditions() == False) or (self.unitary() == False):
+            raise Exception('Conditions failed')
         tstop = self.Tmax
         points = []
         for x0 in self.approxFiniteTMin():
@@ -495,7 +435,7 @@ class A4_gauge_vev1(generic_potential.generic_potential):
         tracingArgs_.update(tracingArgs)
         phases = transitionFinder.traceMultiMin(
             self.Vtot, self.dgradV_dT, self.d2V, points,
-            tLow=0.0, tHigh=tstop, deltaX_target=10*self.x_eps,
+            tLow=0.0, tHigh=tstop, deltaX_target=100*self.x_eps,
             **tracingArgs_)
         self.phases = phases
         transitionFinder.removeRedundantPhases(

@@ -1,7 +1,9 @@
 from A4_model import A4_vev1
 from A4_model_gauge import A4_gauge_vev1
 from A4_full import A4full_vev1
+from A4_model_reduced import A4_reduced_vev1
 from gw_spectrum import gw_spectrum
+from A4_spectrum import A4_spectrum
 
 from cosmoTransitions import generic_potential
 from cosmoTransitions import transitionFinder as tf
@@ -268,24 +270,44 @@ def main():
     plt.show()
     """
 
-    m = A4_vev1(Mn1=280.,Mn2=200.,Mch1=190.,Mch2=150., verbose = 1)
-    mg = A4_gauge_vev1(Mn1=300.,Mn2=200.,Mch1=190.,Mch2=160., verbose = 1)
+    msp = A4_spectrum(Mn1=200.,Mn2=100.,Mch1=120.,Mch2=140., verbose = 1, forcetrans=False, T_eps=1e-3, path='./bin/')
+    print(vars(msp))
+    if msp.spectra == []:
+        msp.genspec()
+    msp.geninfo()
+    msp.printinfo()
+    msp.save()
+    return
+
+    m = A4_vev1(Mn1=185.,Mn2=40.,Mch1=60.,Mch2=118., verbose = 1)
+    mg = A4_gauge_vev1(Mn1=185.,Mn2=40.,Mch1=60.,Mch2=118., verbose = 1)
+    mr = A4_reduced_vev1(Mn1=185.,Mn2=40.,Mch1=60.,Mch2=118., dM0 = mg.dM0, dL0 = mg.dL0, dL1 = mg.dL1, dL2 = mg.dL2, dL3 = mg.dL3, dL4 = mg.dL4, verbose = 1)
+    plot1d(m,[0,0,0,0,0,0],[300.,0.,0.,0.,0.,0.],T=[0,135,200])
+    plt.axvline(x=246.22, color="grey", linestyle="--")
+    plt.savefig('potphys.png')
 
     print(np.linalg.eigvalsh(mg.d2V(X=[mg.vh/np.sqrt(3), 0., mg.vh/np.sqrt(3), 0., mg.vh/np.sqrt(3), 0.], T=0.)))
-    mg.getPhases()
+    print('BFB: {0}, Unitary: {1}'.format(mr.tree_lvl_conditions(), mr.unitary()))
+    mr.getPhases()
 
     T=np.linspace(0.,400.,41)
     #for t in T:
     #    print("T= {1:3.0f}, X = {0}".format(mg.gradV(X=[0.,0.,0.,0.,0.,0.],T=t),t))
 
 
-    mg.findAllTransitions()
-    mg.prettyPrintTnTrans()
+    mr.findAllTransitions()
+    mr.prettyPrintTnTrans()
 
-    mg.plotPhasesPhi()
+    mr.plotPhasesPhi()
     plt.savefig('phases.png')
     
-    print(mg.phases)
+    print(mr.phases)
+
+    Tcrit = mr.TcTrans[0]['Tcrit']
+    Tnuc = mr.TnTrans[0]['Tnuc']
+    plot1d(mr,[0,0,0,0,0],[300./np.sqrt(3),300./np.sqrt(3),0.,300./np.sqrt(3),0.],T=[0,Tcrit,Tnuc,200])
+    plt.axvline(x=246.22, color="grey", linestyle="--")
+    plt.savefig('pot.png')
     
     
 
