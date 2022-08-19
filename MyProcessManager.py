@@ -34,10 +34,11 @@ class MyProcessManager():
 
         bar = Bar('Processing', max = nmax, suffix='%(index)d/%(max)d (%(percent).1f%%) - Elapsed Time: %(elapsed)ds - ETA: %(eta)ds')
         for k in range(self.nprocesses):
-            processes.append(mp.Process(target=self.target, args=self.args))
-            processes[-1].start()
-            timers[processes[-1].pid] = time.time()
-            rproc-=1
+            if rproc>0:
+                processes.append(mp.Process(target=self.target, args=self.args))
+                processes[-1].start()
+                timers[processes[-1].pid] = time.time()
+                rproc-=1
 
         while len(processes)>0:
             for proc in processes:
