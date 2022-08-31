@@ -150,7 +150,6 @@ class A4_gauge_vev1(generic_potential.generic_potential):
 
     def tree_lvl_conditions(self):
         # Here cond=true means that one is in the physical region at tree level
-
         M0 = self.M0 + self.dM0
         L0 = self.L0 + self.dL0
         L1 = self.L1 + self.dL1
@@ -158,8 +157,22 @@ class A4_gauge_vev1(generic_potential.generic_potential):
         L3 = self.L3 + self.dL3
         L4 = self.L4 + self.dL4
 
+        #x = np.array(np.meshgrid([0,1], [0,3/4.], [0,1], [-np.sqrt(3)/4.,0,np.sqrt(3)/4])).T.reshape(-1, 4)
+        x =[
+            [0., 0., 0., 0.],
+            [1., 0., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 3/4., 1/4., 0.],
+            [1/4., 3/4., 0., np.sqrt(3)/4.],
+            [1/4., 3/4., 0., -np.sqrt(3)/4.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), (np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), -(np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., 1/2., 0., np.sqrt(3)/6.],
+            [1/2., 1/2., 0., -np.sqrt(3)/6.],
+        ]
+        Li = np.array([[L1],[L2],[L3],[L4]])
         req1 = M0 > 0
-        req2 = L0 + L1 >0
+        req2 = (L0 + np.dot(x,Li).ravel() > 0).all()
         req3 = L4**2 < 12*L1**2
         req4 = L4**2 < 2*(L3 - L1)*(L2 - L1)
         

@@ -103,10 +103,31 @@ class A4_reduced_vev1(generic_potential.generic_potential):
 
     def tree_lvl_conditions(self):
         # Here cond=true means that one is in the physical region at tree level
-        req1 = self.M0 > 0
-        req2 = self.L0 + self.L1 >0
-        req3 = self.L4**2 < 12*self.L1**2
-        req4 = self.L4**2 < 2*(self.L3 - self.L1)*(self.L2 - self.L1)
+        M0 = self.M0 + self.dM0
+        L0 = self.L0 + self.dL0
+        L1 = self.L1 + self.dL1
+        L2 = self.L2 + self.dL2
+        L3 = self.L3 + self.dL3
+        L4 = self.L4 + self.dL4
+
+        #x = np.array(np.meshgrid([0,1], [0,3/4.], [0,1], [-np.sqrt(3)/4.,0,np.sqrt(3)/4])).T.reshape(-1, 4)
+        x =[
+            [0., 0., 0., 0.],
+            [1., 0., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 3/4., 1/4., 0.],
+            [1/4., 3/4., 0., np.sqrt(3)/4.],
+            [1/4., 3/4., 0., -np.sqrt(3)/4.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), (np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), -(np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., 1/2., 0., np.sqrt(3)/6.],
+            [1/2., 1/2., 0., -np.sqrt(3)/6.],
+        ]
+        Li = np.array([[L1],[L2],[L3],[L4]])
+        req1 = M0 > 0
+        req2 = (L0 + np.dot(x,Li).ravel() > 0).all()
+        req3 = L4**2 < 12*L1**2
+        req4 = L4**2 < 2*(L3 - L1)*(L2 - L1)
         
         cond = req1 and req2 and req3 and req4
 
@@ -114,15 +135,35 @@ class A4_reduced_vev1(generic_potential.generic_potential):
 
     def unitary(self):
         # Here cond=true means that one is in the physical region at tree level
-        req1 = np.abs(self.L0) < np.pi/2.
-        req2 = np.abs(self.L1) < np.pi/2.
-        req3 = np.abs(self.L2) < np.pi/2.
-        req4 = np.abs(self.L3) < np.pi/2.
-        req5 = np.abs(self.L4) < np.pi/2.
+        #req1 = np.abs(self.L0) < np.pi/2.
+        #req2 = np.abs(self.L1) < np.pi/2.
+        #req3 = np.abs(self.L2) < np.pi/2.
+        #req4 = np.abs(self.L3) < np.pi/2.
+        #req5 = np.abs(self.L4) < np.pi/2.
   
-        cond = req1 and req2 and req3 and req4 and req5
+        #cond = req1 and req2 and req3 and req4 and req5
 
-        return cond
+        L0 = self.L0 + self.dL0
+        L1 = self.L1 + self.dL1
+        L2 = self.L2 + self.dL2
+        L3 = self.L3 + self.dL3
+        L4 = self.L4 + self.dL4
+
+        req1 = np.abs(2/3.*L0-L1/2.+L2/2.) < 1/(8*np.pi) 
+        req2 = np.abs(2/3.*L0+L1-L2) < 1/(8*np.pi) 
+        req3 = np.abs(L1/2.+L2/2.+L3) < 1/(8*np.pi) 
+        req4 = np.abs(L1/2.+L2/2.-L3) < 1/(8*np.pi) 
+        req5 = np.abs(2/3.*L0+L1+L2) < 1/(8*np.pi) 
+        req6 = np.abs(2/3.*L0-L1/2.-L2/2.) < 1/(8*np.pi) 
+        req7 = np.abs(L1/2.-L2/2.+L3) < 1/(8*np.pi) 
+        req8 = np.abs(-L1/2.+L2/2.+L3) < 1/(8*np.pi) 
+        req9 = np.abs(2*L0+2*L3-L1/2.-L2/2.) < 1/(8*np.pi) 
+        req10 = np.abs(2*L0-4*L3+L1+L2) < 1/(8*np.pi) 
+        req11 = np.abs(-L3+5/2.*L1-L2/2.) < 1/(8*np.pi) 
+        req12 = np.abs(-L3-L1/2.+5/2.*L2) < 1/(8*np.pi)
+
+        return True
+        #return req1 and req2 and req3 and req4 and req5 and req6 and req7 and req8 and req9 and req10 and req11 and req12
 
     def forbidPhaseCrit(self, X):
         X = np.asanyarray(X)
@@ -423,8 +464,8 @@ class A4_reduced_vev1(generic_potential.generic_potential):
             identified by a unique key. This value is also stored in
             `self.phases`.
         """
-        if (self.tree_lvl_conditions() == False) or (self.unitary() == False):
-            raise Exception('Conditions failed')
+        #if (self.tree_lvl_conditions() == False):# or (self.unitary() == False):
+        #    raise Exception('Conditions failed')
         tstop = self.Tmax
         points = []
         for x0 in self.approxFiniteTMin():
