@@ -24,12 +24,12 @@ from A4_model_reduced import A4_reduced_vev1
 from A4_spectrum import A4_spectrum
 from MyProcessManager import MyProcessManager
 from gw_spectrum import gw_spectrum
-from helperTools import createPars
+from helperTools import createPars, parsL
 
 def findTrans(queue, lock, file_name):
     pars = queue.get()
     sys.stdout = open(os.devnull, 'w')
-    m = A4_spectrum(Mn1 = pars[0], Mn2 = pars[1], Mch1 = pars[2], Mch2 = pars[3], verbose = 0, forcetrans=False, T_eps=5e-4, path = './bin/')
+    m = A4_spectrum(Mn1 = pars[0], Mn2 = pars[1], Mch1 = pars[2], Mch2 = pars[3], verbose = 0, forcetrans=True, T_eps=5e-4, path = './bin/', betamax=1E6)
     if m.spectrainfo == []:
         m.genspec()
     m.save()
@@ -50,9 +50,8 @@ def main():
             file_name = input[0]
             box = [[float(input[1]),float(input[2]),float(input[3]),float(input[4])],[float(input[5]),float(input[6]),float(input[7]),float(input[8])]]
             divs = [int(input[9]),int(input[10]),int(input[11]),int(input[12])]
-            massFlag = input[13]
             
-            pars_list = createPars(box,divs, isMasses=massFlag, prefilter=False)
+            pars_list = parsL(box,divs)
             #print(np.asanyarray(pars_list))
             print('List size: ', len(pars_list))
             

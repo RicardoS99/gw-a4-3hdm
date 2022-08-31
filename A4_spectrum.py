@@ -14,31 +14,35 @@ import numpy as np
 from gw_spectrum import gw_spectrum
 
 class A4_spectrum():
-    def __init__(self, Mn1=265.95, Mn2=174.10, Mch1=197.64, Mch2=146.84, verbose=1, x_eps = 1e-3, T_eps = 1e-3, deriv_order = 4, betamin = 10, betamax = 100000, forcetrans = False, maxit = 4, itTonly = False, path = None):
+    def __init__(self, Mn1=265.95, Mn2=174.10, Mch1=197.64, Mch2=146.84, verbose=1, x_eps = 1e-3, T_eps = 1e-3, deriv_order = 4, betamin = 10, betamax = 100000, forcetrans = False, maxit = 4, itTonly = False, path = './cache/', cachefile = None):
         self.nameid = str(int(Mn1*100)) + '_' + str(int(Mn2*100)) + '_' + str(int(Mch1*100)) + '_' + str(int(Mch2*100))
-        if path is None:
-            self.path = './'
-            self.forcetrans = forcetrans
-            self.maxit = maxit
-            self.itTonly = itTonly
-            self.betamin = betamin
-            self.betamax = betamax
-            self.mphys = A4_vev1(Mn1, Mn2, Mch1, Mch2, verbose=0, x_eps = x_eps, T_eps = T_eps, deriv_order = deriv_order)
-            self.mgr = A4_reduced_vev1(Mn1, Mn2, Mch1, Mch2, dM0 = self.mphys.dM0, dL0 = self.mphys.dL0, dL1 = self.mphys.dL1, dL2 = self.mphys.dL2, dL3 = self.mphys.dL3, dL4 = self.mphys.dL4, verbose=verbose, x_eps = x_eps, T_eps = T_eps, deriv_order = deriv_order)
-            self.spectra = []
-            self.info = []
-        else:
-            self.path = path
-            if self.load() == False:
-                self.forcetrans = forcetrans
-                self.maxit = maxit
-                self.itTonly = itTonly
-                self.betamin = betamin
-                self.betamax = betamax
-                self.mphys = A4_vev1(Mn1, Mn2, Mch1, Mch2, verbose=0, x_eps = x_eps, T_eps = T_eps, deriv_order = deriv_order)
-                self.mgr = A4_reduced_vev1(Mn1, Mn2, Mch1, Mch2, dM0 = self.mphys.dM0, dL0 = self.mphys.dL0, dL1 = self.mphys.dL1, dL2 = self.mphys.dL2, dL3 = self.mphys.dL3, dL4 = self.mphys.dL4, verbose=verbose, x_eps = x_eps, T_eps = T_eps, deriv_order = deriv_order)
-                self.spectra = []
-                self.info = []
+        self.path = path
+        self.forcetrans = forcetrans
+        self.maxit = maxit
+        self.itTonly = itTonly
+        self.betamin = betamin
+        self.betamax = betamax
+        self.Mn1 = Mn1
+        self.Mn2 = Mn2
+        self.Mch1 = Mch1
+        self.Mch2 = Mch2
+        self.x_eps = x_eps
+        self.T_eps = T_eps
+        self.deriv_order = deriv_order
+        self.verbose = verbose
+        self.modelinfo = {}
+        self.spectrainfo = []
+        self.mphys = A4_vev1(self.Mn1, self.Mn2, self.Mch1, self.Mch2, verbose=0, x_eps = self.x_eps, T_eps = self.T_eps, deriv_order = self.deriv_order)
+        self.mgr = A4_reduced_vev1(self.Mn1, self.Mn2, self.Mch1, self.Mch2, dM0 = self.mphys.dM0, dL0 = self.mphys.dL0, dL1 = self.mphys.dL1, dL2 = self.mphys.dL2, dL3 = self.mphys.dL3, dL4 = self.mphys.dL4, verbose=self.verbose, x_eps = self.x_eps, T_eps = self.T_eps, deriv_order = self.deriv_order)
+        self.cache = {'phases': self.mgr.phases, 'modelinfo': self.modelinfo, 'spectrainfo': self.spectrainfo}
+        self.load(cachefile)
+        
+        
+    def getPhases(self):
+        if self.mgr.phases is None:
+            self.mgr.getPhases()
+            self.__geninfo()
+            self.cache.update({'phases': self.mgr.phases})
 
     def findAllTransitions(self):
         try:
@@ -57,7 +61,7 @@ class A4_spectrum():
                     if self.itTonly == False:
                         switchflag *= -1.
                     it += 1
-                    self.mgr.getPhases()        
+                    self.getPhases()        
                     self.mgr.findAllTransitions()        
             else:
                 self.mgr.findAllTransitions()
@@ -69,12 +73,15 @@ class A4_spectrum():
                 self.x_eps = self.mgr.x_eps
                 self.mphys.T_eps = self.T_eps
                 self.mphys.x_eps = self.x_eps
+            
+            self.__geninfo()
         except:
             print('Could not find transitions.')
             pass
 
     def genspec(self):
-        if self.mphys.tree_lvl_conditions() and self.mphys.unitary():
+        spectra = []
+        if True: #self.mphys.tree_lvl_conditions():# and self.mphys.unitary():
             if self.mgr.TnTrans is None:
                 self.findAllTransitions()
                 if self.mgr.TnTrans is None:
@@ -84,71 +91,109 @@ class A4_spectrum():
                     print('No transitions. Stopping GW spectra generation.')
                     return
 
-            if self.spectra == []:
-                if(len(self.mgr.TnTrans)>0):
-                    for ind in range(0,len(self.mgr.TnTrans)):
-                        if(self.mgr.TnTrans[0]['trantype']==1):
-                            print('Finding gw spectrum for: Mn1={0:7.3f}, Mn2={1:7.3f}, Mch1={2:7.3f}, Mch2={3:7.3f}'.format(self.mgr.Mn1, self.mgr.Mn2, self.mgr.Mch1, self.mgr.Mch2)) 
-                            try:
-                                gw = gw_spectrum(self.mgr, ind, turb_on=True)
-                                if(self.betamin < gw.beta < self.betamax):
-                                    self.spectra.append(gw)
-                                else:
-                                    print('Beta out of bounds: {0}'.format(gw.beta))
-                            except:
-                                print('Could not generate gw spectrum for transition {0}.'.format(ind))
-                                pass
+            if(len(self.mgr.TnTrans)>0):
+                for ind in range(0,len(self.mgr.TnTrans)):
+                    if(self.mgr.TnTrans[0]['trantype']==1):
+                        print('Finding gw spectrum for: Mn1={0:7.3f}, Mn2={1:7.3f}, Mch1={2:7.3f}, Mch2={3:7.3f}'.format(self.mgr.Mn1, self.mgr.Mn2, self.mgr.Mch1, self.mgr.Mch2)) 
+                        try:
+                            gw = gw_spectrum(self.mgr, ind, turb_on=True)
+                            if(self.betamin < gw.beta < self.betamax):
+                                spectra.append(gw)
+                            else:
+                                gw.info = {'beta': np.inf}
+                                spectra.append(gw)
+                                print('Beta out of bounds: {0}'.format(gw.beta))
+                        except:
+                            print('Could not generate gw spectrum for transition {0}.'.format(ind))
+                            pass
         else:
             print('Couplings do not verify constraints:\nBFB - {0}\nUnitary - {1}\nStopping GW spectra generation.'.format(self.mphys.tree_lvl_conditions(),self.mphys.unitary()))
+        self.__geninfo(spectra)
+        return spectra
 
-    def geninfo(self):
-        if self.mgr.phases is not None and self.mgr.TnTrans is not None:
-            commoninfo = {
-                'Mn1': self.mgr.Mn1,
-                'Mn2': self.mgr.Mn2,
-                'Mch1': self.mgr.Mch1,
-                'Mch2': self.mgr.Mch2,
-                'M0': self.mgr.M0,
-                'L0': self.mgr.L0,
-                'L1': self.mgr.L1,
-                'L2': self.mgr.L2,
-                'L3': self.mgr.L3,
-                'L4': self.mgr.L4,
-                'dM0': self.mgr.dM0,
-                'dL0': self.mgr.dL0,
-                'dL1': self.mgr.dL1,
-                'dL2': self.mgr.dL2,
-                'dL3': self.mgr.dL3,
-                'dL4': self.mgr.dL4,
-                'NPhases': len(self.mgr.phases),
-                'NTrans': len(self.mgr.TnTrans)
-            }
-            for spectrum in self.spectra:
-                self.info.append({**commoninfo, **spectrum.info})
+    def __geninfo(self, spectra = None):
+        self.modelinfo = {
+            'Mn1': self.mgr.Mn1,
+            'Mn2': self.mgr.Mn2,
+            'Mch1': self.mgr.Mch1,
+            'Mch2': self.mgr.Mch2,
+            'M0': self.mgr.M0,
+            'L0': self.mgr.L0,
+            'L1': self.mgr.L1,
+            'L2': self.mgr.L2,
+            'L3': self.mgr.L3,
+            'L4': self.mgr.L4,
+            'dM0': self.mgr.dM0,
+            'dL0': self.mgr.dL0,
+            'dL1': self.mgr.dL1,
+            'dL2': self.mgr.dL2,
+            'dL3': self.mgr.dL3,
+            'dL4': self.mgr.dL4
+        }
+
+        if self.mgr.phases is not None:
+            self.modelinfo.update({'NPhases': len(self.mgr.phases)})
+
+        if self.mgr.TnTrans is not None:
+            self.modelinfo.update({'NTrans': len(self.mgr.TnTrans)})
+
+        if spectra is not None:
+            for spectrum in spectra:
+                self.spectrainfo.append(spectrum.info)
+
+        self.cache.update({'modelinfo': self.modelinfo, 'spectrainfo': self.spectrainfo})
+        print('here')
+
 
     def printinfo(self):
-        if self.info == []:
-            self.geninfo()
-        for info in self.info:
+        for info in self.spectrainfo:
             print(info)
+
+    def getinfo(self):
+        output = []
+        for spec in self.spectrainfo:
+            output.append({**self.modelinfo, **spec})
+        
+        return output
 
     #------------Save/Load Methods----------------
 
-    def save(self):
+    def save(self, cachefile = None):
+        if cachefile is None:
+            cachefile = self.path + self.nameid + '.pickle'
+        with open(cachefile, 'wb') as f:
+                pickle.dump(self.cache,f,-1)
+                print('Saved Successfully!')
+                return True
+        with open(self.path + self.nameid + '.pickle', 'wb') as f:
+                pickle.dump(self.__dict__,f,-1)
+                print('Saved Successfully!')
+                return True
         try:
             with open(self.path + self.nameid, 'wb') as f:
-                pickle.dump(self.__dict__,f,2)
+                pickle.dump(self.__dict__,f,-1)
                 print('Saved Successfully!')
                 return True
         except:
             print('Save Failed!')
             return False
 
-    def load(self):
+    def load(self, cachefile = None):
         try:
-            with open(self.path + self.nameid, 'rb') as f:
-                tmp_dict = pickle.load(f)
-                self.__dict__.update(tmp_dict)
+            if cachefile is None:
+                cachefile = self.path + self.nameid + '.pickle'
+            with open(cachefile, 'rb') as f:
+                tmp_cache = pickle.load(f)
+                self.cache.update(tmp_cache)
+                self.modelinfo = self.cache['modelinfo']
+                self.spectrainfo = self.cache['spectrainfo']
+                self.Mn1 = self.modelinfo['Mn1']
+                self.Mn2 = self.modelinfo['Mn2']
+                self.Mch1 = self.modelinfo['Mch1']
+                self.Mch2 = self.modelinfo['Mch2']
+                self.mphys = A4_vev1(self.Mn1, self.Mn2, self.Mch1, self.Mch2, verbose=0, x_eps = self.x_eps, T_eps = self.T_eps, deriv_order = self.deriv_order)
+                self.mgr = A4_reduced_vev1(self.Mn1, self.Mn2, self.Mch1, self.Mch2, dM0 = self.mphys.dM0, dL0 = self.mphys.dL0, dL1 = self.mphys.dL1, dL2 = self.mphys.dL2, dL3 = self.mphys.dL3, dL4 = self.mphys.dL4, verbose=self.verbose, x_eps = self.x_eps, T_eps = self.T_eps, deriv_order = self.deriv_order)
+                self.mgr.phases = self.cache['phases']
             print('Loaded Successfully!')
             return True
         except:

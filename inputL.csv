@@ -1,0 +1,4 @@
+Filename,Mn1_MnSum_low,Mn2_MnDif_low,Mch1_MchSum_low,Mch2_MchDif_low,Mn1_MnSum_high,Mn2_MnDif_high,Mch1_MchSum_high,Mch2_MchDif_high,Mn1_MnSum_divs,Mn2_MnDif_divs,Mch1_MchSum_divs,Mch2_MchDif_divs,isMassesFlag
+output/Ltest04.csv,-0.4,-0.4,-0.4,-0.4,0.0,0.4,0.4,0.4,21,41,41,41
+output/Ltest05.csv,-1.0,-1.0,-1.0,-1.0,0.0,1.0,1.0,1.0,41,81,81,81
+

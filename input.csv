@@ -1,3 +1,7 @@
 Filename,Mn1_MnSum_low,Mn2_MnDif_low,Mch1_MchSum_low,Mch2_MchDif_low,Mn1_MnSum_high,Mn2_MnDif_high,Mch1_MchSum_high,Mch2_MchDif_high,Mn1_MnSum_divs,Mn2_MnDif_divs,Mch1_MchSum_divs,Mch2_MchDif_divs,isMassesFlag
-output/test.csv,413.0,310.0,160.0,130.0,413.0,310.0,160.0,140.0,1,1,1,2,True
-output/test2.csv,416.0,313.0,164.0,135.0,416.0,313.0,164.0,140.0,1,1,1,2,False
+output/test3.csv,260.0,55.0,294.0,-94.0,560.0,220.0,435.0,94.0,11,11,11,11,False
+output/test2.csv,184.0,68.0,100.0,100.0,330.0,241.0,247.0,247.0,11,11,11,11,True
+output/test1a.csv,184.0,68.0,100.0,100.0,330.0,241.0,247.0,247.0,201,1,1,1,True
+output/test1b.csv,184.0,68.0,100.0,100.0,330.0,241.0,247.0,247.0,1,201,1,1,True
+output/test1c.csv,184.0,68.0,100.0,100.0,330.0,241.0,247.0,247.0,1,1,201,1,True
+output/test1d.csv,184.0,68.0,100.0,100.0,330.0,241.0,247.0,247.0,1,1,1,201,True
