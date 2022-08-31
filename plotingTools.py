@@ -10,6 +10,8 @@ from cosmoTransitions import transitionFinder as tf
 from cosmoTransitions import pathDeformation as pd
 
 import numpy as np
+from scipy import stats
+from scipy import optimize
 
 import pandas as pd
 from matplotlib import colors
@@ -165,30 +167,276 @@ def plotActionT(m, trans, Tmin=0.001, Tmax=500., n=50):
     return T_vec, S_vec
 
 def main():
-    """
+    
     #Reading CSV Files to Data Frames
-    df02 = pd.read_csv('output/run02.csv')
-    df02a = pd.read_csv('output/run02a.csv')
-    df02b = pd.read_csv('output/run02b.csv')
-    df02c = pd.read_csv('output/run02c.csv')
-    df02d = pd.read_csv('output/run02d.csv')
-    df02d = pd.read_csv('output/run02d.csv')
-    df03b = pd.read_csv('output/run03b.csv')
-
-    df = pd.concat([df02, df02a, df02b, df02c, df02d, df03b], ignore_index=True) #Concatenates all Data Frames
-    df.drop(df.columns[[0]], inplace=True, axis=1) #Deleting first column which is meaningless info
+    df01c = pd.read_csv('output/test1c.csv')
+    df01d = pd.read_csv('output/test1d.csv')
+    df02 = pd.read_csv('output/test2.csv')
+    df03 = pd.read_csv('output/test3.csv')
+    df04 = pd.read_csv('output/test4.csv')
+    df05 = pd.read_csv('output/test5.csv')
+    df06 = pd.read_csv('output/test6.csv')
+    df06a = pd.read_csv('output/test6a.csv')
+    dfL = pd.read_csv('output/Ltest01.csv')
+    dfL2 = pd.read_csv('output/Ltest02.csv')
+    dfL3 = pd.read_csv('output/Ltest03.csv')
+    
+    df = pd.concat([df01c, df01d, df02, df03, df04, df05, df06, df06a, dfL, dfL2, dfL3], ignore_index=True) #Concatenates all Data Frames
+    #df = pd.concat([dfL, dfL2, dfL3], ignore_index=True) #Concatenates all Data Frames
+    #df.drop(df.columns[[0]], inplace=True, axis=1) #Deleting first column which is meaningless info
     df.drop_duplicates(subset=['Mn1','Mn2','Mch1','Mch2'],inplace=True) #Deleting duplicated entries
-    df.sort_values(by='AmpPeakSW')
+    df.dropna(subset=['AmpPeakSW'],inplace=True)
 
     df['MnSum'] = df['Mn1'] + df['Mn2']
     df['MnDif'] = df['Mn1'] - df['Mn2']
     df['MchSum'] = df['Mch1'] + df['Mch2']
     df['MchDif'] = df['Mch1'] - df['Mch2']
     df['MSum'] = df['MnSum'] + df['MchSum']
+    df['b/f'] = df['beta'].div(df['FreqPeakSW'])
+    df['fp'] = np.log(df['AmpPeakSW'])*np.log(df['FreqPeakSW'])
+    df['logf'] = np.log(df['FreqPeakSW'])
+    df['loga'] = np.log(df['AmpPeakSW'])
 
-    print(df.corr())
+    #df = df[df['AmpPeakSW']>1E-13]
+    df = df[df['M0']>0.0]
+    df = df[df['L0']+df['L1']>0.0]
+    df = df[df['L4']**2 < 12.0*df['L1']**2]
+    df = df[df['L4']**2 < 2.0*(df['L3']-df['L1'])*(df['L2']-df['L1'])]
+
+    df.sort_values(by='FreqPeakSW')
+    print('Number of total points: ', df['AmpPeakSW'].count())
+    freq = np.log(df['FreqPeakSW'].to_numpy())
+    amp =np.log(df['AmpPeakSW'].to_numpy())
+
+    fit = np.poly1d(np.polyfit(freq,amp, deg=12))
+    fax = np.sort(freq)
+
+    #plt.plot(freq, amp, 'o')
+    #plt.plot(fax, fit(fax))
+
+    from scipy.optimize import fmin
+    def outlierQ(function, x, y, threshold):
+        def D2(z, function, x, y):
+            return (x-z)**2 + (y-function(z))**2
+
+        xopt = fmin(D2, x, args=(function, x, y), disp=False)
+
+        return True if D2(xopt, function,x,y) > threshold else False
+
+    dropit = []
+    for index, row in df.iterrows():
+        if outlierQ(fit, row['logf'], row['loga'],0.7):
+            dropit.append(index)
+    print('Removing {0} outliers.'.format(len(dropit)))
+    df.drop(index=dropit, inplace=True)
+
+    df1 = df.copy(deep=True)
+    df = df[abs(df['L0'])<2.0]
+    df = df[abs(df['L1'])<2.0]
+    df = df[abs(df['L2'])<2.0]
+    df = df[abs(df['L3'])<2.0]
+
+    df1 = pd.concat([df1,df,df]).drop_duplicates(keep=False)
+    print('Number of unitary valid points: ', df['AmpPeakSW'].count())
+    print('Number of unitary invalid points: ', df1['AmpPeakSW'].count())
 
     plt.ioff()
+
+    """
+
+    ax = df1.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', s=0.5, marker='x', color='grey', label='non-unitary', loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    df.plot.scatter(ax=ax, x='FreqPeakSW',y='AmpPeakSW', s=0.5, marker='o', color='blue', label='unitary', loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.legend()
+    plt.savefig('plots/peak.eps')
+
+    df.plot.scatter(x='beta',y='alpha', s=0.5, marker='o', c='VEVdif/T', colormap='viridis', logx=True, grid=True, xlabel=r'$\beta/H$', ylabel=r'$\alpha$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/alphbeta.eps')
+
+    df.plot.scatter(x='beta',y='alpha', s=0.5, marker='o', c='TempNuc', colormap='viridis', logx=True, grid=True, xlabel=r'$\beta/H$', ylabel=r'$\alpha$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$T_{\mathrm{n}}$ [GeV]')
+    plt.savefig('plots/alphbetaT.eps')
+
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='beta', colormap='viridis', s=0.5, marker='o', loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\beta/H$')
+    plt.savefig('plots/peakbeta.eps')
+
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='alpha', colormap='viridis', s=0.5, marker='o', loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\alpha$')
+    plt.savefig('plots/peakalpha.eps')
+
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='VEVdif/T', colormap='viridis', s=0.5, marker='o', loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakvevdif.eps')
+
+    df.plot.scatter(x='L0',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$\Lambda_{0}$', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakL0.eps')
+
+    df.plot.scatter(x='L1',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$\Lambda_{1}$', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakL1.eps')
+
+    df.plot.scatter(x='L2',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$\Lambda_{2}$', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakL2.eps')
+
+    df.plot.scatter(x='L3',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$\Lambda_{3}$', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakL3.eps')
+
+    df.plot.scatter(x='L4',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$\Lambda_{4}$', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakL4.eps')
+
+    df.plot.scatter(x='Mn1',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$m_{\mathrm{H}_1}$ [GeV]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakMn1.eps')
+
+    df.plot.scatter(x='Mn2',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$m_{\mathrm{H}_2}$ [GeV]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakMn2.eps')
+
+    df.plot.scatter(x='Mch1',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$m_{\mathrm{H}_+}$ [GeV]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakMch1.eps')
+
+    df.plot.scatter(x='Mch2',y='AmpPeakSW', color='blue', s=0.5, marker='o', logy=True, grid=True, xlabel=r'$m_{\mathrm{H}_-}$ [GeV]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakMch2.eps')
+
+    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='MSum', colormap='viridis', s=0.5, marker='o', loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$m_{\mathrm{H}_1}+m_{\mathrm{H}_2}+m_{\mathrm{H}_+}m_{\mathrm{H}_-}$ [GeV]')
+    plt.savefig('plots/peakMSum.eps')
+
+    df.plot.scatter(x='MnSum',y='MnDif', c='VEVdif/T', colormap='viridis', s=0.5, marker='o', grid=True, xlabel=r'$m_{\mathrm{H}_1} + m_{\mathrm{H}_2}$ [GeV]', ylabel=r'$m_{\mathrm{H}_1} - m_{\mathrm{H}_2}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/MnSumMnDif.eps')
+
+    df.plot.scatter(x='MchSum',y='MchDif', c='VEVdif/T', colormap='viridis', s=0.5, marker='o', grid=True, xlabel=r'$m_{\mathrm{H}_+} + m_{\mathrm{H}_-}$ [GeV]', ylabel=r'$m_{\mathrm{H}_+} - m_{\mathrm{H}_-}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/MchSumMchDif.eps')
+
+    df.plot.scatter(x='MnSum',y='MchDif', c='VEVdif/T', colormap='viridis', s=0.5, marker='o', grid=True, xlabel=r'$m_{\mathrm{H}_1} + m_{\mathrm{H}_2}$ [GeV]', ylabel=r'$m_{\mathrm{H}_+} - m_{\mathrm{H}_-}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/MnSumMchDif.eps')
+
+    df.plot.scatter(x='MchSum',y='MnDif', c='VEVdif/T', colormap='viridis', s=0.5, marker='o', grid=True, xlabel=r'$m_{\mathrm{H}_+} + m_{\mathrm{H}_-}$ [GeV]', ylabel=r'$m_{\mathrm{H}_1} - m_{\mathrm{H}_2}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/MchSumMnDif.eps')
+
+    """
+    m = A4_spectrum(Mn1 = df['Mn1'][100], Mn2 = df['Mn2'][100], Mch1 = df['Mch1'][100], Mch2 = df['Mch2'][100], verbose = 1, forcetrans=True, T_eps=5e-4, path = './bin/', betamax=1E6)
+    if m.spectrainfo == []:
+        m.genspec()
+
+    m.plot1d([0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0,df['TempNuc'][100],df['TempCrit'][100],100])
+    plt.savefig('plots/vplot1dradreal.eps')
+
+    m.plot1dtht(0,2*np.pi,139.007485,caxs=[1,3],saxs=[2,4],T=[0,df['TempNuc'][100],df['TempCrit'][100],100])
+    plt.savefig('plots/vplotarg.eps')
+
+    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'][100],df['TempCrit'][100],100],n=200, xaxis=[0,1], yaxis=[3], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx01y3.eps')
+
+    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'][100],df['TempCrit'][100],100],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx013y24.eps')
+
+    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'][100],df['TempCrit'][100],100],n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx1y2.eps')
+
+
+
+    return
+
+
+    df.plot.scatter(x='FreqPeakSW',y='beta', s=2, marker='o', color='green', loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$\beta$')
+    df.plot.scatter(x='FreqPeakSW',y='TempNuc', s=2, marker='o', color='green', logx=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$T^{\mathrm{nuc}}$ [GeV]')
+    df.plot.scatter(x='AmpPeakSW',y='beta', s=2, marker='o', color='green', loglog=True, grid=True, xlabel=r'$\Omega^{\mathrm{peak}}$', ylabel=r'$\beta$')
+    df.plot.scatter(x='AmpPeakSW',y='TempNuc', s=2, marker='o', color='green', logx=True, grid=True, xlabel=r'$\Omega^{\mathrm{peak}}$', ylabel=r'$T^{\mathrm{nuc}}$ [GeV]')
+    df.plot.scatter(x='TempNuc',y='b/f', s=2, marker='o', color='green', loglog=False, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$\beta/f^{\mathrm{peak}}$')
+    df.plot.scatter(x='TempNuc',y='fp', s=2, marker='o', color='green', loglog=False, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$\beta/f^{\mathrm{peak}}$')
+    df.plot.scatter(x='TempNuc',y='beta', s=2, marker='o', color='green', loglog=True, grid=True, xlabel=r'$T^{\mathrm{nuc}}$ [GeV]', ylabel=r'$\beta$')
+    df.plot.scatter(x='TempNuc',y='alpha', s=2, marker='o', color='green', loglog=False, grid=True, xlabel=r'$T^{\mathrm{nuc}}$ [GeV]', ylabel=r'$\alpha$')
+    df.plot.scatter(x='VEVdif/T',y='alpha', s=2, marker='o', color='green', loglog=False, grid=True, xlabel=r'$\Delta |\phi| / T_{\mathrm{n}}$', ylabel=r'$\alpha$')
+    df.plot.scatter(x='VEVdif/T',y='beta', s=2, marker='o', color='green', loglog=True, grid=True, xlabel=r'$\Delta |\phi| / T_{\mathrm{n}}$', ylabel=r'$\beta$')
+    plt.show()
+    
+    
+    #print(df.corr())
+
+
+    
+
+    ax = df1.plot.scatter(x='L0',y='AmpPeakSW', s=2, grid=True, logy=True, xlabel=r'$\Lambda_{0}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    #df.plot.scatter(ax=ax, x='L0',y='AmpPeakSW', s=2, grid=True, logy=True, xlabel=r'$\Lambda_{0}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    plt.show()
+
+    df.plot.scatter(x='L1',y='AmpPeakSW', s=2, grid=True, logy=True, xlabel=r'$\Lambda_{1}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='L2',y='AmpPeakSW', s=2, grid=True, logy=True, xlabel=r'$\Lambda_{2}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='L3',y='AmpPeakSW', s=2, grid=True, logy=True, xlabel=r'$\Lambda_{3}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='L4',y='AmpPeakSW', s=2, grid=True, logy=True, xlabel=r'$\Lambda_{4}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='MnSum',y='AmpPeakSW', s=2, grid=True, logy=True, xlabel=r'$m_{\mathrm{H}_1} + m_{\mathrm{H}_2}$ [GeV]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='MnDif',y='AmpPeakSW', s=2, grid=True, logy=True, xlabel=r'$m_{\mathrm{H}_1} - m_{\mathrm{H}_2}$ [GeV]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='Mn1',y='Mn2', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$m_{\mathrm{H}_1}$ [GeV]', ylabel=r'$m_{\mathrm{H}_2}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='Mn1',y='Mch1', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$m_{\mathrm{H}_1}$ [GeV]', ylabel=r'$m_{\mathrm{H}_+}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='Mn2',y='Mch1', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$m_{\mathrm{H}_2}$ [GeV]', ylabel=r'$m_{\mathrm{H}_+}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='MnSum',y='MnDif', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$m_{\mathrm{H}_1} + m_{\mathrm{H}_2}$ [GeV]', ylabel=r'$m_{\mathrm{H}_1} - m_{\mathrm{H}_2}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='MchSum',y='MchDif', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$m_{\mathrm{H}_+} + m_{\mathrm{H}_-}$ [GeV]', ylabel=r'$m_{\mathrm{H}_+} - m_{\mathrm{H}_-}$ [GeV]')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='L0',y='L1', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$\Lambda_0$', ylabel=r'$\Lambda_1$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='L1',y='L2', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$\Lambda_1$', ylabel=r'$\Lambda_2$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='L3',y='L4', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$\Lambda_3$', ylabel=r'$\Lambda_4$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='L1',y='L3', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$\Lambda_1$', ylabel=r'$\Lambda_3$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
+
+    df.plot.scatter(x='L1',y='L4', c='VEVdif/T', colormap='viridis', s=2, grid=True, xlabel=r'$\Lambda_1$', ylabel=r'$\Lambda_4$')
+    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
+    plt.savefig('plots/peakmnsum.eps')
+    #plt.show()
 
     df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='MnSum', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
     plt.gcf().get_axes()[1].set_ylabel(r'$m_{\mathrm{H}_1} + m_{\mathrm{H}_2}$ [GeV]')
@@ -215,21 +463,12 @@ def main():
     plt.savefig('plots/peakmsum.eps')
     #plt.show()
 
-    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='alpha', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
-    plt.gcf().get_axes()[1].set_ylabel(r'$\alpha$')
-    plt.savefig('plots/peakalpha.eps')
-    #plt.show()
+    
 
-    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='VEVdif/T', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
-    plt.gcf().get_axes()[1].set_ylabel(r'$\Delta |\phi| / T_{\mathrm{n}}$')
-    plt.savefig('plots/peakvevdif.eps')
-    #plt.show()
+    
+    plt.show()
 
-    df.plot.scatter(x='FreqPeakSW',y='AmpPeakSW', c='beta', colormap='viridis', s=2, loglog=True, grid=True, xlabel=r'$f^{\mathrm{peak}}$ [Hz]', ylabel=r'$h^2 \Omega^{\mathrm{peak}}_{\mathrm{GW}}$')
-    plt.gcf().get_axes()[1].set_ylabel(r'$\beta/H$')
-    plt.savefig('plots/peakbeta.eps')
-    #plt.show()
-
+    return
     m = A4_vev1(Mn1=df['Mn1'][0],Mn2=df['Mn2'][0],Mch1=df['Mch1'][0],Mch2=df['Mch2'][0])
     #m.findAllTransitions()
     #m.prettyPrintTnTrans()
@@ -268,7 +507,7 @@ def main():
     #plot1d(A4_vev1(Mn1=413.,Mn2=12.,Mch1=311,Mch2=110.),[0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[51.16])
 
     plt.show()
-    """
+    
 
     msp = A4_spectrum(Mn1=200.,Mn2=100.,Mch1=120.,Mch2=140., verbose = 1, forcetrans=False, T_eps=1e-3, path='./bin/')
     print(vars(msp))
