@@ -317,23 +317,25 @@ def main():
     plt.savefig('plots/MchSumMnDif.eps')
 
     """
-    m = A4_spectrum(Mn1 = df['Mn1'][100], Mn2 = df['Mn2'][100], Mch1 = df['Mch1'][100], Mch2 = df['Mch2'][100], verbose = 1, forcetrans=True, T_eps=5e-4, path = './bin/', betamax=1E6)
+    df.reindex()
+    it = 0
+    m = A4_spectrum(Mn1 = df['Mn1'].iloc[it], Mn2 = df['Mn2'].iloc[it], Mch1 = df['Mch1'].iloc[it], Mch2 = df['Mch2'].iloc[it], verbose = 1, forcetrans=False, T_eps=5e-4, path = './bin/', betamax=1E6)
     if m.spectrainfo == []:
         m.genspec()
 
-    m.plot1d([0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0,df['TempNuc'][100],df['TempCrit'][100],100])
+    m.plot1d([0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0,df['TempNuc'].iloc[it],df['TempCrit'].iloc[it],100])
     plt.savefig('plots/vplot1dradreal.eps')
 
-    m.plot1dtht(0,2*np.pi,139.007485,caxs=[1,3],saxs=[2,4],T=[0,df['TempNuc'][100],df['TempCrit'][100],100])
+    m.plot1dtht(0,2*np.pi,139.007485,caxs=[1,3],saxs=[2,4],T=[0,df['TempNuc'].iloc[it],df['TempCrit'].iloc[it],100])
     plt.savefig('plots/vplotarg.eps')
 
-    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'][100],df['TempCrit'][100],100],n=200, xaxis=[0,1], yaxis=[3], clevs=100,cfrac=0.8, filled=False)
+    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'].iloc[it],df['TempCrit'].iloc[it],100],n=200, xaxis=[0,1], yaxis=[3], clevs=100,cfrac=0.8, filled=False)
     plt.savefig('plots/vplot2dx01y3.eps')
 
-    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'][100],df['TempCrit'][100],100],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.8, filled=False)
+    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'].iloc[it],df['TempCrit'].iloc[it],100],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.8, filled=False)
     plt.savefig('plots/vplot2dx013y24.eps')
 
-    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'][100],df['TempCrit'][100],100],n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.8, filled=False)
+    m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'].iloc[it],df['TempCrit'].iloc[it],100],n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.8, filled=False)
     plt.savefig('plots/vplot2dx1y2.eps')
 
 
