@@ -203,7 +203,8 @@ def main():
     df = df[df['L4']**2 < 12.0*df['L1']**2]
     df = df[df['L4']**2 < 2.0*(df['L3']-df['L1'])*(df['L2']-df['L1'])]
 
-    df.sort_values(by='FreqPeakSW')
+    df.sort_values(by='AmpPeakSW')
+    df.reset_index(drop=True, inplace=True)
     print('Number of total points: ', df['AmpPeakSW'].count())
     freq = np.log(df['FreqPeakSW'].to_numpy())
     amp =np.log(df['AmpPeakSW'].to_numpy())
@@ -317,11 +318,12 @@ def main():
     plt.savefig('plots/MchSumMnDif.eps')
 
     """
-    df.reindex()
+    df.reset_index(drop=True, inplace=True)
+
     it = 0
     m = A4_spectrum(Mn1 = df['Mn1'].iloc[it], Mn2 = df['Mn2'].iloc[it], Mch1 = df['Mch1'].iloc[it], Mch2 = df['Mch2'].iloc[it], verbose = 1, forcetrans=False, T_eps=5e-4, path = './bin/', betamax=1E6)
-    if m.spectrainfo == []:
-        m.genspec()
+    #if m.spectrainfo == []:
+    #    m.genspec()
 
     m.plot1d([0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0,df['TempNuc'].iloc[it],df['TempCrit'].iloc[it],100])
     plt.savefig('plots/vplot1dradreal.eps')
@@ -337,6 +339,29 @@ def main():
 
     m.plot2d((-150,150,-150,150),T=[0,df['TempNuc'].iloc[it],df['TempCrit'].iloc[it],100],n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.8, filled=False)
     plt.savefig('plots/vplot2dx1y2.eps')
+
+    df1.reset_index(drop=True, inplace=True)
+
+
+    it = 10
+    m = A4_spectrum(Mn1 = df1['Mn1'].iloc[it], Mn2 = df1['Mn2'].iloc[it], Mch1 = df1['Mch1'].iloc[it], Mch2 = df1['Mch2'].iloc[it], verbose = 1, forcetrans=False, T_eps=5e-4, path = './bin/', betamax=1E6)
+    #if m.spectrainfo == []:
+    #    m.genspec()
+
+    m.plot1d([0,0,0,0,0],[246.22/np.sqrt(3),246.22/np.sqrt(3),0,246.22/np.sqrt(3),0],T=[0,df1['TempNuc'].iloc[it],df1['TempCrit'].iloc[it],100])
+    plt.savefig('plots/vplot1dradreal_1.eps')
+
+    m.plot1dtht(0,2*np.pi,139.007485,caxs=[1,3],saxs=[2,4],T=[0,df1['TempNuc'].iloc[it],df1['TempCrit'].iloc[it],100])
+    plt.savefig('plots/vplotarg_1.eps')
+
+    m.plot2d((-150,150,-150,150),T=[0,df1['TempNuc'].iloc[it],df1['TempCrit'].iloc[it],100],n=200, xaxis=[0,1], yaxis=[3], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx01y3_1.eps')
+
+    m.plot2d((-150,150,-150,150),T=[0,df1['TempNuc'].iloc[it],df1['TempCrit'].iloc[it],100],n=200, xaxis=[0,1,3], yaxis=[2,4], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx013y24_1.eps')
+
+    m.plot2d((-150,150,-150,150),T=[0,df1['TempNuc'].iloc[it],df1['TempCrit'].iloc[it],100],n=200, xaxis=[1], yaxis=[2], clevs=100,cfrac=0.8, filled=False)
+    plt.savefig('plots/vplot2dx1y2_1.eps')
 
 
 
