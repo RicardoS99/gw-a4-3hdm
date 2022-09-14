@@ -445,7 +445,7 @@ class A4_reduced_vev1(generic_potential.generic_potential):
         # Approximate minimum at T=0. Giving tree-level minimum
         min0 = np.array([0., 0., 0., 0., 0.])
         min1 = np.array([self.vh/np.sqrt(3), self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.])
-        return []
+        return [[min0,200.]]
     
     def getPhases(self,tracingArgs={}):
         """

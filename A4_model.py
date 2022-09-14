@@ -104,7 +104,8 @@ class A4_vev1(generic_potential.generic_potential):
                 print('d4: ', d4)
                 print('d5: ', d5)
 
-                print('1st derivatives', self.gradV(tl_vevs,0.))
+                gradT0[abs(gradT0)<1]=0
+                print('1st derivatives', gradT0)
             self.dM0 = -(3*np.sqrt(3)*d1 - np.sqrt(3)*d2*self.vh)/(2.*self.vh)
             self.dL1 = (3*(-d1 + d2*self.vh))/(2.*self.vh**3)
             self.dL2 = -(7*d1 - 3*d2*self.vh - 2*d3*self.vh - 2*d4*self.vh - 2*d3*self.cosa*self.vh + 2*d4*self.cosa*self.vh - 4*d5*self.vh*sqcm*sqcp)/(2.*self.vh**3)
@@ -112,7 +113,9 @@ class A4_vev1(generic_potential.generic_potential):
             self.dL4 = -((np.sqrt(3)*d3*sqcm - np.sqrt(3)*d4*sqcm + np.sqrt(3)*d3*self.cosa*sqcm - np.sqrt(3)*d4*self.cosa*sqcm - 2*np.sqrt(3)*d5*self.cosa*sqcp)/ (np.sqrt(1 + self.cosa)*self.vh**2))
         
             if verbose > 1 :
-                print('1st derivatives', self.gradV(tl_vevs,0.))
+                gradT0 = self.gradV(tl_vevs,0.)
+                gradT0[abs(gradT0)<1]=0
+                print('1st derivatives', gradT0)
                 d2V_ct = self.d2V(tl_vevs,0.) - Hess
                 d2V_CW[np.abs(d2V_CW) < 1] = 0
                 d2V_ct[np.abs(d2V_ct) < 1] = 0
@@ -130,12 +133,12 @@ class A4_vev1(generic_potential.generic_potential):
 
     def tree_lvl_conditions(self):
         # Here cond=true means that one is in the physical region at tree level
-        M0 = self.M0 + self.dM0
-        L0 = self.L0 + self.dL0
-        L1 = self.L1 + self.dL1
-        L2 = self.L2 + self.dL2
-        L3 = self.L3 + self.dL3
-        L4 = self.L4 + self.dL4
+        M0 = self.M0
+        L0 = self.L0
+        L1 = self.L1
+        L2 = self.L2
+        L3 = self.L3
+        L4 = self.L4
 
         #x = np.array(np.meshgrid([0,1], [0,3/4.], [0,1], [-np.sqrt(3)/4.,0,np.sqrt(3)/4])).T.reshape(-1, 4)
         x =[
@@ -163,11 +166,11 @@ class A4_vev1(generic_potential.generic_potential):
     def unitary(self):
         # Here cond=true means that one is in the physical region at tree level
 
-        L0 = self.L0 + self.dL0
-        L1 = self.L1 + self.dL1
-        L2 = self.L2 + self.dL2
-        L3 = self.L3 + self.dL3
-        L4 = self.L4 + self.dL4
+        L0 = self.L0
+        L1 = self.L1
+        L2 = self.L2
+        L3 = self.L3
+        L4 = self.L4
 
         req1 = np.abs(2/3.*L0-L1/2.+L2/2.) < 1/(8*np.pi) 
         req2 = np.abs(2/3.*L0+L1-L2) < 1/(8*np.pi) 

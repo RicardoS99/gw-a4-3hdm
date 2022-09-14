@@ -9,7 +9,7 @@ from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 
 class gw_spectrum():
-    def __init__(self, model, ind_trans, g=106.75, delta=0.0001, v=0.95, turb_on=False, epsilon=0.1):
+    def __init__(self, model, ind_trans, g=106.75, delta=0.0001, v=0.95, turb_on=False, epsilon=0.05):
         self.m = model
         self.id = ind_trans
         self.g = g
@@ -87,8 +87,11 @@ class gw_spectrum():
         F = 3.57e-5/g**(1/3.)
         cs = 1/np.sqrt(3.)
         HR = (8.*np.pi)**(1/3.)*self.v/self.beta
+        Ht = 2*HR/np.sqrt(3.*kin)
         fpeak = (26e-6)/HR*T*g**(1/6.)
         peak = 0.687e-2*F *(HR/np.sqrt(cs))**(2) * kin**(3/2.)
+        #fpeak = 1.9e-5/self.v * self.beta * T * g**(1/6.)
+        #peak = 2.65e-6 / self.beta * kin**2 * g**(1/3.)*self.v * (1-(1+2*Ht)**(-1/2))
 
         return fpeak, peak
 

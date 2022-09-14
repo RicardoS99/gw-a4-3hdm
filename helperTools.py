@@ -68,27 +68,164 @@ def parsL(box, n, bfb = True, positivity = True, unitary = False, Mh=125.10, vh=
 
     return pars 
 
+def rndparsL(box, nsamples, bfb = True, Mh=125.10, vh=246.22):
+    M0 = np.sqrt(3)/2.*Mh**2
+    def bfbFilter(L1, L2, L3, L4):
+        L0 = np.sqrt(3)/vh**2*M0 - L1
+        x =[
+            [0., 0., 0., 0.],
+            [1., 0., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 3/4., 1/4., 0.],
+            [1/4., 3/4., 0., np.sqrt(3)/4.],
+            [1/4., 3/4., 0., -np.sqrt(3)/4.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), (np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), -(np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., 1/2., 0., np.sqrt(3)/6.],
+            [1/2., 1/2., 0., -np.sqrt(3)/6.],
+        ]
+        Li = np.array([[L1],[L2],[L3],[L4]])
+        req1 = M0 > 0
+        req2 = (L0 + np.dot(x,Li).ravel() > 0).all()
+        req3 = L4**2 < 12*L1**2
+        req4 = L4**2 < 2*(L3 - L1)*(L2 - L1)
+        cond = req1 and req2 and req3 and req4
+        return cond
 
-def createPars(box, n, isMasses=True, prefilter = True): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isMasses=False: Mn1+Mn2, Mn1-Mn2, Mch1+Mch2, Mch1-Mch2
-    def preunitfilter(ms, Mh=125.1, vh=246.22):
-        M0 = np.sqrt(3)/2.*Mh**2
+
+    print('Creating Parameters List...')
+
+    L1 = (box[-1][0] - box[0][0]) * np.random.random_sample(nsamples) + box[0][0]
+    L2 = (box[-1][1] - box[0][1]) * np.random.random_sample(nsamples) + box[0][1]
+    L3 = (box[-1][2] - box[0][2]) * np.random.random_sample(nsamples) + box[0][2]
+    L4 = (box[-1][3] - box[0][3]) * np.random.random_sample(nsamples) + box[0][3]
+    L = np.column_stack((L1,L2,L3,L4)).reshape(-1, 4)
+
+    L = np.unique(L, axis=0)
+
+
+    pars = []
+    ind_to_remove = []
+    for i in range(L.shape[0]):
+        if bfb:
+            if bfbFilter(L[i][0], L[i][1], L[i][2], L[i][3]):
+                ind_to_remove.append(i)
+
+    L = np.delete(L, ind_to_remove, 0)
+    #print(L)
+    for i in range(L.shape[0]):
+        Mn1 = vh**2/12 *(-5*L[i][0]+3*L[i][1]+2*L[i][2] + np.sqrt((-L[i][0]+3*L[i][1]-2*L[i][2])**2 + 12*L[i][3]**2))
+        Mn2 = vh**2/12 *(-5*L[i][0]+3*L[i][1]+2*L[i][2] - np.sqrt((-L[i][0]+3*L[i][1]-2*L[i][2])**2 + 12*L[i][3]**2))
+        Mch1 = vh**2 * (-L[i][0]/2 + L[i][3]/(4*np.sqrt(3)))
+        Mch2 = vh**2 * (-L[i][0]/2 - L[i][3]/(4*np.sqrt(3)))
+        if Mn1>0. and Mn2>0. and Mch1>0. and Mch2>0.:
+            pars.append([np.sqrt(Mn1), np.sqrt(Mn2), np.sqrt(Mch1), np.sqrt(Mch2)])
+
+    return pars 
+
+def rndpars(box, nsamples, prefilter = True, Mh=125.10, vh=246.22): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isMasses=False: Mn1+Mn2, Mn1-Mn2, Mch1+Mch2, Mch1-Mch2
+    M0 = np.sqrt(3)/2.*Mh**2
+    def bfbFilter(L1, L2, L3, L4):
+        L0 = np.sqrt(3)/vh**2*M0 - L1
+        x =[
+            [0., 0., 0., 0.],
+            [1., 0., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 3/4., 1/4., 0.],
+            [1/4., 3/4., 0., np.sqrt(3)/4.],
+            [1/4., 3/4., 0., -np.sqrt(3)/4.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), (np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), -(np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., 1/2., 0., np.sqrt(3)/6.],
+            [1/2., 1/2., 0., -np.sqrt(3)/6.],
+        ]
+        Li = np.array([[L1],[L2],[L3],[L4]])
+        req1 = M0 > 0
+        req2 = (L0 + np.dot(x,Li).ravel() > 0).all()
+        req3 = L4**2 < 12*L1**2
+        req4 = L4**2 < 2*(L3 - L1)*(L2 - L1)
+        cond = req1 and req2 and req3 and req4
+        return cond
+    
+    def prebfbfilter(ms, Mh=125.1, vh=246.22):
         L1 = -(ms[2]**2 + ms[3]**2)/(vh**2)
         L4 = 2.*np.sqrt(3)*(ms[2]**2 - ms[3]**2)/(vh**2)
-        L0 = np.sqrt(3)*M0/(vh**2) - L1
         xc1 = 6.*(ms[0]**2 + ms[1]**2)/(vh**2) + 5*L1
         xc2 = np.sqrt((6.*(ms[0]**2 - ms[1]**2)/(vh**2))**2 - 12*L4**2)
         L2 = 1/6.*(xc1 + xc2 + L1)
         L3 = 1/4.*(xc1 - xc2 - L1)
 
-        req1 = np.abs(L0) < np.pi/2.
-        req2 = np.abs(L1) < np.pi/2.
-        req3 = np.abs(L2) < np.pi/2.
-        req4 = np.abs(L3) < np.pi/2.
-        req5 = np.abs(L4) < np.pi/2.
-  
-        cond = req1 and req2 and req3 and req4 and req5
+        return bfbFilter(L1, L2, L3, L4)
 
+    print('Creating Parameters List...')
+
+    Mn1 = (box[-1][0] - box[0][0]) * np.random.random_sample(nsamples) + box[0][0]
+    Mn2 = (box[-1][1] - box[0][1]) * np.random.random_sample(nsamples) + box[0][1]
+    Mch1 = (box[-1][2] - box[0][2]) * np.random.random_sample(nsamples) + box[0][2]
+    Mch2 = (box[-1][3] - box[0][3]) * np.random.random_sample(nsamples) + box[0][3]
+    pars = np.column_stack((Mn1, Mn2, Mch1, Mch2)).reshape(-1, 4)
+
+    print('Raw parameters list: ', pars.shape)
+    pars = np.unique(pars, axis=0)
+    ind_to_remove = np.where(np.abs(pars[...,2] - pars[...,3]) < 1) #Avoid S4 symmetry
+    pars = np.delete(pars, ind_to_remove, 0)
+    ind_to_remove = np.where(pars[...,0] < 0) #Guarantee postivie masses
+    pars = np.delete(pars, ind_to_remove, 0)
+    ind_to_remove = np.where(pars[...,1] < 0) #Guarantee postivie masses
+    pars = np.delete(pars, ind_to_remove, 0)
+    ind_to_remove = np.where(pars[...,2] < 0) #Guarantee postivie masses
+    pars = np.delete(pars, ind_to_remove, 0)
+    ind_to_remove = np.where(pars[...,3] < 0) #Guarantee postivie masses
+    pars = np.delete(pars, ind_to_remove, 0)
+        
+    print('Unique parameters list shape before removing invalid masses: ', pars.shape)
+    ind_to_remove = np.where((6.*(pars[...,0]**2 - pars[...,1]**2))**2 - 12*(2.*np.sqrt(3)*(pars[...,2]**2 - pars[...,3]**2))**2 <= 0. )
+    pars = np.delete(pars, ind_to_remove, 0)
+    print('Unique parameters list shape after removing invalid masses: ', pars.shape)
+    pars_list = []
+    for i in range(pars.shape[0]):
+        if prefilter:
+            if prebfbfilter(pars[i]):
+                pars_list.append(pars[i])
+        else:
+            pars_list.append(pars[i])
+
+    print('Final list size: {0}'.format(len(pars_list)))
+    return pars_list
+
+def createPars(box, n, isMasses=True, prefilter = True, Mh=125.10, vh=246.22): #isMasses=True: Mn1, Mn2, Mch1, Mch2; isMasses=False: Mn1+Mn2, Mn1-Mn2, Mch1+Mch2, Mch1-Mch2
+    M0 = np.sqrt(3)/2.*Mh**2
+    def bfbFilter(L1, L2, L3, L4):
+        L0 = np.sqrt(3)/vh**2*M0 - L1
+        x =[
+            [0., 0., 0., 0.],
+            [1., 0., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 3/4., 1/4., 0.],
+            [1/4., 3/4., 0., np.sqrt(3)/4.],
+            [1/4., 3/4., 0., -np.sqrt(3)/4.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), (np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., (9-6*np.sqrt(2))/2., -4.+3*np.sqrt(2), -(np.sqrt(6)-np.sqrt(3))/2.],
+            [1/2., 1/2., 0., np.sqrt(3)/6.],
+            [1/2., 1/2., 0., -np.sqrt(3)/6.],
+        ]
+        Li = np.array([[L1],[L2],[L3],[L4]])
+        req1 = M0 > 0
+        req2 = (L0 + np.dot(x,Li).ravel() > 0).all()
+        req3 = L4**2 < 12*L1**2
+        req4 = L4**2 < 2*(L3 - L1)*(L2 - L1)
+        cond = req1 and req2 and req3 and req4
         return cond
+    
+    def prebfbfilter(ms, Mh=125.1, vh=246.22):
+        L1 = -(ms[2]**2 + ms[3]**2)/(vh**2)
+        L4 = 2.*np.sqrt(3)*(ms[2]**2 - ms[3]**2)/(vh**2)
+        xc1 = 6.*(ms[0]**2 + ms[1]**2)/(vh**2) + 5*L1
+        xc2 = np.sqrt((6.*(ms[0]**2 - ms[1]**2)/(vh**2))**2 - 12*L4**2)
+        L2 = 1/6.*(xc1 + xc2 + L1)
+        L3 = 1/4.*(xc1 - xc2 - L1)
+
+        return bfbFilter(L1, L2, L3, L4)
 
     print('Creating Parameters List...')
     Mn1 = np.linspace(box[0][0], box[-1][0], n[0], dtype=float)
@@ -124,7 +261,7 @@ def createPars(box, n, isMasses=True, prefilter = True): #isMasses=True: Mn1, Mn
     pars_list = []
     for i in range(pars.shape[0]):
         if prefilter:
-            if preunitfilter(pars[i]):
+            if prebfbfilter(pars[i]):
                 pars_list.append(pars[i])
         else:
             pars_list.append(pars[i])
@@ -182,11 +319,25 @@ def checkFiles(path = './bin/', redofile = 'redopars.csv', logfile = None):
     return redo_pars
 
 def main():
-    checkFiles(logfile = 'log.txt')
+    #checkFiles(logfile = 'log.txt')
     #print(np.array(np.meshgrid([0,1], [0,3/4.], [0,1], [-np.sqrt(3)/4.,0,np.sqrt(3)/4])).T.reshape(-1, 4))
     #m = A4_spectrum(Mn1=10.,Mn2=20.,Mch1=20.,Mch2=22., verbose = 1, forcetrans=False, T_eps=5e-4, path='./testing/')
     #print(m.mgr.tree_lvl_conditions())
     #print(m.mgr.unitary())
+
+    """
+    n = 1000
+    sum = 0
+    samples = 1000
+    for i in range(0,samples):
+        pars = rndpars([[0.,0.,0.,0.],[400.,400.,400.,400.]],n)
+        sum +=len(pars)
+
+    print("Percentage of valid pars: {0} %".format(sum/(n*samples)*100)) 
+    """
+    rndpars([[0.,0.,0.,0.],[400.,400.,400.,400.]],65000)
+
+    
     
 if __name__ == '__main__':
   main()

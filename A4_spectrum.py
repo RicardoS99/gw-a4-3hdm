@@ -61,7 +61,7 @@ class A4_spectrum():
                     if self.itTonly == False:
                         switchflag *= -1.
                     it += 1
-                    self.getPhases()        
+                    self.mgr.getPhases()        
                     self.mgr.findAllTransitions()        
             else:
                 self.mgr.findAllTransitions()
@@ -75,6 +75,7 @@ class A4_spectrum():
                 self.mphys.x_eps = self.x_eps
             
             self.__geninfo()
+            self.cache.update({'phases': self.mgr.phases})
         except:
             print('Could not find transitions.')
             pass
