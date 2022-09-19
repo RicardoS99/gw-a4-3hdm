@@ -103,12 +103,12 @@ class A4_reduced_vev1(generic_potential.generic_potential):
 
     def tree_lvl_conditions(self):
         # Here cond=true means that one is in the physical region at tree level
-        M0 = self.M0 + self.dM0
-        L0 = self.L0 + self.dL0
-        L1 = self.L1 + self.dL1
-        L2 = self.L2 + self.dL2
-        L3 = self.L3 + self.dL3
-        L4 = self.L4 + self.dL4
+        M0 = self.M0
+        L0 = self.L0
+        L1 = self.L1
+        L2 = self.L2
+        L3 = self.L3
+        L4 = self.L4
 
         #x = np.array(np.meshgrid([0,1], [0,3/4.], [0,1], [-np.sqrt(3)/4.,0,np.sqrt(3)/4])).T.reshape(-1, 4)
         x =[
@@ -143,11 +143,11 @@ class A4_reduced_vev1(generic_potential.generic_potential):
   
         #cond = req1 and req2 and req3 and req4 and req5
 
-        L0 = self.L0 + self.dL0
-        L1 = self.L1 + self.dL1
-        L2 = self.L2 + self.dL2
-        L3 = self.L3 + self.dL3
-        L4 = self.L4 + self.dL4
+        L0 = self.L0
+        L1 = self.L1
+        L2 = self.L2
+        L3 = self.L3
+        L4 = self.L4
 
         req1 = np.abs(2/3.*L0-L1/2.+L2/2.) < 1/(8*np.pi) 
         req2 = np.abs(2/3.*L0+L1-L2) < 1/(8*np.pi) 
@@ -169,7 +169,9 @@ class A4_reduced_vev1(generic_potential.generic_potential):
         X = np.asanyarray(X)
         H10,  H20, H21, H30, H31, = X[...,0], X[...,1], X[...,2], X[...,3], X[...,4]
 
-        req1 = (H10 < -5).any()
+        req1 = (H10 < -10).any()
+        #req2 = (H20 < -10).any()
+        #req3 = (H30 < -10).any()
 
         cond = req1 
 
@@ -445,40 +447,43 @@ class A4_reduced_vev1(generic_potential.generic_potential):
         # Approximate minimum at T=0. Giving tree-level minimum
         min0 = np.array([0., 0., 0., 0., 0.])
         min1 = np.array([self.vh/np.sqrt(3), self.vh/np.sqrt(3), 0., self.vh/np.sqrt(3), 0.])
-        return [[min0,200.]]
+        print(self.findT0()+1.0)
+        return [[min0,self.findT0()+1.0]]
     
-    def getPhases(self,tracingArgs={}):
-        """
-        Find different phases as functions of temperature
-
-        Parameters
-        ----------
-        tracingArgs : dict
-            Parameters to pass to :func:`transitionFinder.traceMultiMin`.
-
-        Returns
-        -------
-        dict
-            Each item in the returned dictionary is an instance of
-            :class:`transitionFinder.Phase`, and each phase is
-            identified by a unique key. This value is also stored in
-            `self.phases`.
-        """
-        #if (self.tree_lvl_conditions() == False):# or (self.unitary() == False):
-        #    raise Exception('Conditions failed')
-        tstop = self.Tmax
-        points = []
-        for x0 in self.approxFiniteTMin():
-            points.append(x0)
-        for x0 in self.approxZeroTMin():
-            points.append([x0,0.0])
-        tracingArgs_ = dict(forbidCrit=self.forbidPhaseCrit)
-        tracingArgs_.update(tracingArgs)
-        phases = transitionFinder.traceMultiMin(
-            self.Vtot, self.dgradV_dT, self.d2V, points,
-            tLow=0.0, tHigh=tstop, deltaX_target=100*self.x_eps,
-            **tracingArgs_)
-        self.phases = phases
-        transitionFinder.removeRedundantPhases(
-            self.Vtot, phases, self.x_eps*1e-2, 10.)
-        return self.phases
+    #
+    #def getPhases(self,tracingArgs={}):
+    #    """
+    #    Find different phases as functions of temperature
+#
+    #    Parameters
+    #    ----------
+    #    tracingArgs : dict
+    #        Parameters to pass to :func:`transitionFinder.traceMultiMin`.
+#
+    #    Returns
+    #    -------
+    #    dict
+    #        Each item in the returned dictionary is an instance of
+    #        :class:`transitionFinder.Phase`, and each phase is
+    #        identified by a unique key. This value is also stored in
+    #        `self.phases`.
+    #    """
+    #    #if (self.tree_lvl_conditions() == False):# or (self.unitary() == False):
+    #    #    raise Exception('Conditions failed')
+    #    tstop = self.Tmax
+    #    points = []
+    #    for x0 in self.approxFiniteTMin():
+    #        points.append(x0)
+    #    for x0 in self.approxZeroTMin():
+    #        points.append([x0,0.0])
+    #    tracingArgs_ = dict(forbidCrit=self.forbidPhaseCrit)
+    #    tracingArgs_.update(tracingArgs)
+    #    phases = transitionFinder.traceMultiMin(
+    #        self.Vtot, self.gradV, self.dgradV_dT, self.d2V, points,
+    #        tLow=0.0, tHigh=tstop, deltaX_target=10*self.x_eps,
+    #        **tracingArgs_)
+    #    self.phases = phases
+    #    transitionFinder.removeRedundantPhases(
+    #        self.Vtot, self.gradV, phases, self.x_eps*1e-2, 10.)
+    #    return self.phases
+#

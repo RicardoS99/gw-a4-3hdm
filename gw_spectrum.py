@@ -152,8 +152,9 @@ class gw_spectrum():
 
         for i in range(0, len(S_vec)):
             try:
-                print("Calculating Action for Temperature:", T_vec[i])
-                S_vec[i] = compute_action_my(xt,xf,T_vec[i])
+                if T_vec[i]>0.:
+                    print("Calculating Action for Temperature:", T_vec[i])
+                    S_vec[i] = compute_action_my(xt,xf,T_vec[i])
             except:
                 print("Couldn't calculate action...")
 

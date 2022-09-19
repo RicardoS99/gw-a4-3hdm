@@ -29,7 +29,7 @@ from helperTools import createPars, parsL, rndpars
 def findTrans(queue, lock, file_name):
     pars = queue.get()
     #sys.stdout = open(os.devnull, 'w')
-    m = A4_spectrum(Mn1 = pars[0], Mn2 = pars[1], Mch1 = pars[2], Mch2 = pars[3], verbose = 0, forcetrans=True, T_eps=1e-3, path = './bin/', betamax=1E6)
+    m = A4_spectrum(Mn1 = pars[0], Mn2 = pars[1], Mch1 = pars[2], Mch2 = pars[3], verbose = 2, forcetrans=True, T_eps=1e-3, path = './bin/', betamax=1E6)
     if m.spectrainfo == []:
         m.genspec()
     m.save()
@@ -58,6 +58,8 @@ def main():
             queue = mp.Queue()
             lock = mp.Lock()
 
+            print(pars_list)
+
             for pars in pars_list:
                 queue.put(pars)
 
@@ -66,7 +68,7 @@ def main():
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
 
-            p = MyProcessManager(findTrans, queue, 12, (queue,lock,file_name), 1200, 10)
+            p = MyProcessManager(findTrans, queue, 1, (queue,lock,file_name), 1200, 10)
             p.run()
 
             """
